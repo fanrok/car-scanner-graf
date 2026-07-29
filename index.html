@@ -219,14 +219,40 @@
     background: #3a2424; border: 1px solid #FF5252; color: #ffcdd2;
     padding: 14px 16px; border-radius: 8px; margin: 16px 0; font-size: 14px; line-height: 1.6;
   }
+  /* ===== ТАЙМЛАЙН (нижний скролл) ===== */
+  .timeline {
+    position: sticky; bottom: 0; z-index: 95;
+    background: linear-gradient(#181c22, #151920);
+    border-top: 1px solid #2a313b;
+    box-shadow: 0 -6px 18px rgba(0,0,0,.45);
+    padding: 8px 0 6px;
+    margin: 8px -14px 0;
+  }
+  .timeline-track {
+    position: relative; height: 30px; margin: 0 14px;
+    background: #1b2027; border: 1px solid #2a313b; border-radius: 7px;
+    cursor: pointer; touch-action: none;
+  }
+  .timeline-thumb {
+    position: absolute; top: 2px; bottom: 2px; left: 0; width: 40px;
+    background: rgba(76,175,80,.22); border: 1px solid #4CAF50; border-radius: 5px;
+    box-shadow: 0 0 8px rgba(76,175,80,.3);
+  }
+  .timeline-thumb::after {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 12px;
+    transform: translate(-50%,-50%);
+    background: linear-gradient(90deg, #4CAF50 0 2px, transparent 2px 6px, #4CAF50 6px 8px);
+    opacity: .7;
+  }
+  .timeline-label {
+    text-align: center; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 10.5px; color: #8b95a3; margin-top: 4px;
+  }
 </style>
 </head>
 <body>
 <noscript>
-  <div class="noscript-warn">
-    ⚠ Для работы нужен JavaScript. На iPhone откройте файл через <b>«Поделиться» → Safari</b>
-    (стандартный предпросмотр «Файлов» не выполняет скрипты). На Android — откройте в Chrome.
-  </div>
+  <div class="noscript-warn">⚠ Для работы нужен JavaScript. На iPhone откройте файл через <b>«Поделиться» → Safari</b>. На Android — в Chrome.</div>
 </noscript>
 
 <div class="header">
@@ -243,18 +269,23 @@
   <div class="help">
     <button class="help-btn" tabindex="0" aria-label="Справка">?</button>
     <div class="help-panel"><div class="help-panel-body">
-      <h4>Управление</h4>
-      <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
-      Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
-      Наведите курсор (или тапните на телефоне) на график — увидите точное значение.<br>
-      Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка (только мышью, сохраняется).</p>
+      <h4>Управление (компьютер)</h4>
+      <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции.<br>
+      Ползунки «Окно» и «Позиция», 🔍+ / 🔍− — масштаб.<br>
+      Наведите курсор на график — точное значение.<br>
+      Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка.</p>
+      <h4>Управление (телефон)</h4>
+      <p><b>Тап</b> по графику — вертикальная линия и значение.<br>
+      <b>Свайп влево/вправо</b> по графику — прокрутка времени.<br>
+      <b>Щипок</b> двумя пальцами — изменение «Окна».<br>
+      <b>Полоса внизу</b> — таймлайн: тяните окошко или тапайте для перехода.</p>
       <h4>Анализатор опасных событий</h4>
       <ul>
         <li><b>Откат УОЗ</b> (красный): минусовой УОЗ при оборотах &gt; 1000, нажатой педали (ДПДЗ ≥ 15%) и неповороте оборотов. Поддерживается <b>УОЗ по цилиндрам</b>. Если рядом детонация — жёлтое кольцо + «⚡детонация».</li>
         <li><b>Детонация</b> (пульсирующий красный): сигнал «Knock detected» = 1 из ЭБУ.</li>
         <li><b>Хлопание дросселя</b> (оранжевый): скачки ДПДЗ ~50–80% при оборотах &gt; 1000.</li>
         <li><b>Аномалии турбины</b> (голубой): недодув при тапке в пол, резкий сброс / скачок наддува.</li>
-        <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход к моменту.</li>
+        <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход.</li>
       </ul>
       <h4>Распознавание параметров</h4>
       <p>Параметры определяются <b>по ключевым словам</b>, а не по точному имени — работает с разными авто и прошивками. Префиксы вроде <code style="display:inline;padding:1px 4px;margin:0">[ECM]</code> игнорируются. Неизвестные параметры рисуются внизу.</p>
@@ -297,17 +328,21 @@
   <b>Загрузите CSV-лог</b>
   Нажмите «+» или просто перетащите файл в окно
   <div class="empty-hints">
-    <div class="hint-card"><div class="hint-title">Навигация</div><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка по времени. На телефоне — ползунки. Тап по графику показывает значение.</div>
+    <div class="hint-card"><div class="hint-title">Навигация</div>Компьютер: <kbd>Shift</kbd> + колесо. Телефон: свайп по графику, щипок — зум, полоса внизу — таймлайн. Тап по графику показывает значение.</div>
     <div class="hint-card"><div class="hint-title">На телефоне</div>Открывайте файл в <b>браузере</b> (Safari / Chrome), а не в предпросмотре «Файлов» — там не выполняется JavaScript.</div>
     <div class="hint-card"><div class="hint-title">Экспорт из CarScanner Pro</div>Логгер → записать → Экспорт → CSV, вертикальный формат:<code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code></div>
   </div>
+</div>
+
+<div class="timeline" id="timeline" style="display:none">
+  <div class="timeline-track" id="timelineTrack"><div class="timeline-thumb" id="timelineThumb"></div></div>
+  <div class="timeline-label" id="timelineLabel"></div>
 </div>
 
 <script>
 const MONO = 'ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace';
 const SANS = '"Segoe UI", system-ui, sans-serif';
 
-// Полифил скруглённого прямоугольника (ctx.roundRect есть не везде, особенно на мобильных)
 function rrPath(ctx, x, y, w, h, r) {
   if (typeof ctx.roundRect === 'function') { ctx.roundRect(x, y, w, h, r); return; }
   ctx.moveTo(x + r, y);
@@ -317,8 +352,14 @@ function rrPath(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-
-// Видимые ошибки — чтобы с телефона можно было понять, что пошло не так
+function fitText(ctx, text, font, maxWidth) {
+  ctx.font = font;
+  if (maxWidth <= 0) return '';
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
+  return t + '…';
+}
 window.addEventListener('error', e => {
   const fi = document.getElementById('fileInfo');
   if (fi && e.message) fi.textContent = '⚠ ' + e.message;
@@ -342,7 +383,6 @@ const ROLES = [
   { id:'boost', match: n => /наддув/i.test(n) || /boost/i.test(n), unit:'bar', color:'#FF8A65', turboChart:true },
   { id:'accel', match: n => /ускорение/i.test(n) || /acceleration/i.test(n), unit:'g', color:'#7E57C2' },
 ];
-
 const MULTI_PALETTE = ['#AB47BC','#7E57C2','#5C6BC0','#42A5F5','#26C6DA','#26A69A','#9CCC65','#FFCA28','#FFA726','#FF7043','#EF5350','#EC407A'];
 const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC','#F6AEA9','#A8DAB5','#FFB77D','#D7A9E3','#AECBFA','#FDE293'];
 
@@ -356,7 +396,7 @@ let allData = {}, paramConfigs = {}, roleParams = {}, chartOrder = [];
 let totalTime = 0, windowSize = 30, timePosition = 0;
 let canvasElements = [], mouseX = -1, rafPending = false, dragState = null;
 let dangerRetards = [], throttleFlaps = [], turboEvents = [], knockEvents = [];
-let pendingFlash = null;
+let pendingFlash = null, chartTouch = null;
 const dpr = window.devicePixelRatio || 1;
 
 function setCookie(n, v, d) { const e = new Date(); e.setTime(e.getTime() + (d||365)*864e5); document.cookie = n+'='+encodeURIComponent(v)+';expires='+e.toUTCString()+';path=/;SameSite=Lax'; }
@@ -380,10 +420,7 @@ function applySavedOrder(available) {
 
 function loadFile(file) {
   const r = new FileReader();
-  r.onload = ev => {
-    try { parseAndDraw(ev.target.result, file.name); }
-    catch (err) { document.getElementById('fileInfo').textContent = '⚠ Ошибка разбора: ' + err.message; }
-  };
+  r.onload = ev => { try { parseAndDraw(ev.target.result, file.name); } catch (err) { document.getElementById('fileInfo').textContent = '⚠ Ошибка разбора: ' + err.message; } };
   r.onerror = () => { document.getElementById('fileInfo').textContent = '⚠ Не удалось прочитать файл'; };
   r.readAsText(file);
 }
@@ -416,7 +453,7 @@ window.addEventListener('wheel', e => {
   updateControls(); scheduleRedraw();
 }, { passive: false });
 let resizeTimer;
-window.addEventListener('resize', () => { if (!totalTime) return; clearTimeout(resizeTimer); resizeTimer = setTimeout(redrawCharts, 120); });
+window.addEventListener('resize', () => { if (!totalTime) return; clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { redrawCharts(); updateTimeline(); }, 120); });
 function scheduleRedraw() { if (rafPending) return; rafPending = true; requestAnimationFrame(() => { rafPending = false; redrawCharts(); }); }
 function updateControls() {
   const maxPos = Math.max(0, totalTime - windowSize);
@@ -425,6 +462,98 @@ function updateControls() {
   document.getElementById('windowSizeDisplay').textContent = formatWin(windowSize);
   document.getElementById('timePosition').value = maxPos ? (timePosition / maxPos) * 100 : 0;
   document.getElementById('timePositionDisplay').textContent = timePosition.toFixed(0) + '–' + (timePosition + windowSize).toFixed(0) + 's';
+  updateTimeline();
+}
+
+// ===== ТАЙМЛАЙН =====
+function updateTimeline() {
+  const tl = document.getElementById('timeline');
+  const track = document.getElementById('timelineTrack');
+  const thumb = document.getElementById('timelineThumb');
+  const label = document.getElementById('timelineLabel');
+  if (!totalTime) { tl.style.display = 'none'; return; }
+  tl.style.display = 'block';
+  const tw = track.clientWidth;
+  if (!tw) return;
+  const thumbW = Math.max(28, (windowSize / totalTime) * tw);
+  const maxLeft = Math.max(0, tw - thumbW);
+  const maxPos = Math.max(0, totalTime - windowSize);
+  const left = maxPos > 0 ? (timePosition / maxPos) * maxLeft : 0;
+  thumb.style.width = thumbW + 'px';
+  thumb.style.left = left + 'px';
+  label.textContent = formatWin(timePosition) + ' – ' + formatWin(Math.min(totalTime, timePosition + windowSize)) + '  /  ' + formatDur(totalTime);
+}
+(function initTimeline() {
+  const track = document.getElementById('timelineTrack');
+  let dragging = false;
+  function setFromX(clientX) {
+    const rect = track.getBoundingClientRect();
+    const tw = rect.width;
+    const thumbW = Math.max(28, (windowSize / totalTime) * tw);
+    const maxLeft = Math.max(0, tw - thumbW);
+    let x = clientX - rect.left - thumbW / 2;
+    x = Math.max(0, Math.min(maxLeft, x));
+    const maxPos = Math.max(0, totalTime - windowSize);
+    timePosition = maxLeft > 0 ? (x / maxLeft) * maxPos : 0;
+    updateControls(); scheduleRedraw();
+  }
+  track.addEventListener('pointerdown', e => { dragging = true; try { track.setPointerCapture(e.pointerId); } catch(_){} setFromX(e.clientX); });
+  track.addEventListener('pointermove', e => { if (dragging) setFromX(e.clientX); });
+  track.addEventListener('pointerup', () => { dragging = false; });
+  track.addEventListener('pointercancel', () => { dragging = false; });
+})();
+
+// ===== ЖЕСТЫ НА ГРАФИКАХ (тап / свайп / щипок) =====
+function pinchDist(ts) { const dx = ts[0].clientX - ts[1].clientX, dy = ts[0].clientY - ts[1].clientY; return Math.hypot(dx, dy); }
+function onChartTouchStart(e) {
+  if (e.touches.length === 2) {
+    chartTouch = { mode: 'pinch', d0: pinchDist(e.touches), w0: windowSize };
+  } else if (e.touches.length === 1) {
+    const t = e.touches[0];
+    chartTouch = { mode: 'maybe', x0: t.clientX, y0: t.clientY, t0: Date.now(), pos0: timePosition, moved: false, rect: e.currentTarget.getBoundingClientRect() };
+  }
+}
+function onChartTouchMove(e) {
+  if (!chartTouch) return;
+  if (chartTouch.mode === 'pinch') {
+    if (e.touches.length >= 2) {
+      e.preventDefault();
+      const d = pinchDist(e.touches);
+      if (d > 0 && chartTouch.d0 > 0) {
+        const scale = d / chartTouch.d0;
+        let nw = chartTouch.w0 / scale;
+        nw = Math.max(5, Math.min(parseFloat(wsSlider.max) || 300, nw));
+        if (Math.abs(nw - windowSize) > 0.5) { windowSize = nw; updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); }
+      }
+    }
+    return;
+  }
+  if (e.touches.length !== 1) return;
+  const t = e.touches[0];
+  const dx = t.clientX - chartTouch.x0, dy = t.clientY - chartTouch.y0;
+  if (chartTouch.mode === 'maybe') {
+    if (Math.abs(dx) > Math.abs(dy) * 1.3 && Math.abs(dx) > 8) chartTouch.mode = 'pan';
+    else if (Math.abs(dy) > 8) chartTouch.mode = 'vscroll';
+  }
+  if (chartTouch.mode === 'pan') {
+    e.preventDefault();
+    chartTouch.moved = true;
+    if (mouseX !== -1) { mouseX = -1; updateOverlay(); }
+    const w = chartTouch.rect.width || 300;
+    const pxPerSec = w / windowSize;
+    const maxPos = Math.max(0, totalTime - windowSize);
+    timePosition = Math.max(0, Math.min(maxPos, chartTouch.pos0 - dx / pxPerSec));
+    updateControls(); scheduleRedraw();
+  }
+}
+function onChartTouchEnd(e) {
+  if (!chartTouch) return;
+  if (chartTouch.mode === 'maybe' && !chartTouch.moved && e.changedTouches.length) {
+    const t = e.changedTouches[0];
+    if (Date.now() - chartTouch.t0 < 400) { mouseX = t.clientX - chartTouch.rect.left; updateOverlay(); }
+  }
+  if (e.touches.length === 0) chartTouch = null;
+  else if (chartTouch.mode === 'pinch') chartTouch = null;
 }
 
 function makeShortName(name, roleId) {
@@ -437,7 +566,6 @@ function makeShortName(name, roleId) {
   if (roleId === 'knockAdapt') return 'Knock adapt';
   return name;
 }
-
 function classifyParams(rawData, rawUnits) {
   allData = rawData; paramConfigs = {}; roleParams = {};
   ROLES.forEach(r => roleParams[r.id] = []);
@@ -468,7 +596,6 @@ function classifyParams(rawData, rawUnits) {
   extras.forEach(n => defaultOrder.push(n));
   chartOrder = applySavedOrder(defaultOrder);
 }
-
 function parseAndDraw(text, fileName) {
   const rawData = {}, rawUnits = {};
   const tokens = text.replace(/^\uFEFF/, '').split(/[;\r\n]+/).map(t => t.replace(/"/g, '').trim());
@@ -504,7 +631,6 @@ function parseAndDraw(text, fileName) {
 
 function getRoleData(roleId) { const n = roleParams[roleId]; return n && n.length ? allData[n[0]] : null; }
 function getRoleNames(roleId) { return roleParams[roleId] || []; }
-
 function runAnalysis() {
   dangerRetards = []; throttleFlaps = []; turboEvents = []; knockEvents = [];
   const rpm = getRoleData('rpm'), knock = getRoleData('knockDetected');
@@ -520,7 +646,6 @@ function runAnalysis() {
   if (knock && knock.length >= 1) knockEvents = detectKnock(getRoleNames('knockDetected')[0], knock, rpm, speed);
   renderEventsPanel();
 }
-
 function detectRetards(uozName, rpm, tps, load, knock) {
   const uoz = allData[uozName], label = paramConfigs[uozName].shortName, out = [];
   let j = 0;
@@ -548,7 +673,6 @@ function detectRetards(uozName, rpm, tps, load, knock) {
   }
   return out;
 }
-
 function detectFlaps(tpsName, tps, rpm) {
   const out = [];
   for (let k = 1; k < tps.length - 1; k++) {
@@ -563,7 +687,6 @@ function detectFlaps(tpsName, tps, rpm) {
   }
   return dedup(out, MERGE_FLAP);
 }
-
 function detectTurbo(boostName, boost, tps, rpm) {
   const out = [];
   for (let k = 1; k < boost.length; k++) {
@@ -579,7 +702,6 @@ function detectTurbo(boostName, boost, tps, rpm) {
   }
   return dedup(out, MERGE_TURBO);
 }
-
 function detectKnock(knockName, knock, rpm, speed) {
   const out = []; let prev = 0;
   for (let k = 0; k < knock.length; k++) {
@@ -593,15 +715,12 @@ function detectKnock(knockName, knock, rpm, speed) {
   }
   return dedup(out, MERGE_KNOCK);
 }
-
 function dedup(events, gap) {
   const out = [];
   events.forEach(e => { const last = out[out.length-1]; if (last && (e.x - last.x) < gap && (!e.kind || e.kind === last.kind) && e.target === last.target) return; out.push(e); });
   return out;
 }
-
 const TURBO_LABELS = { underboost: 'недодув', drop: 'сброс наддува', spike: 'скачок наддува' };
-
 function renderEventsPanel() {
   const panel = document.getElementById('eventsPanel'), list = document.getElementById('eventsList');
   const events = [];
@@ -639,14 +758,12 @@ function renderEventsPanel() {
     list.appendChild(chip);
   });
 }
-
 function jumpToEvent(ev) {
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(maxPos, ev.x - windowSize / 3));
   pendingFlash = ev.target;
   updateControls(); scheduleRedraw();
 }
-
 function getConfig(name) { return paramConfigs[name] || { name: name, shortName: name, unit: '', color: '#9AA0A6', role: 'extra' }; }
 
 function redrawCharts() {
@@ -692,12 +809,10 @@ function redrawCharts() {
     canvasElements.push(el); drawChart(el);
     canvas.addEventListener('mousemove', e => { if (dragState && dragState.dragging) return; const rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; updateOverlay(); });
     canvas.addEventListener('mouseleave', () => { mouseX = -1; updateOverlay(); });
-    // Тач: тап/проведение пальцем показывает значение (скролл страницы не ломается)
-    const onTouch = e => { const t = e.touches[0]; if (!t) return; const rect = canvas.getBoundingClientRect(); mouseX = t.clientX - rect.left; updateOverlay(); };
-    canvas.addEventListener('touchstart', onTouch, { passive: true });
-    canvas.addEventListener('touchmove', onTouch, { passive: true });
-    canvas.addEventListener('touchend', () => { setTimeout(() => { mouseX = -1; updateOverlay(); }, 1500); });
-    // Drag только мышью (на тач-устройствах не срабатывает)
+    canvas.addEventListener('touchstart', onChartTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onChartTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onChartTouchEnd);
+    canvas.addEventListener('touchcancel', () => { chartTouch = null; });
     box.addEventListener('pointerdown', e => {
       if (e.button !== 0 || (e.pointerType && e.pointerType !== 'mouse')) return;
       dragState = { box: box, startY: e.clientY, dragging: false };
@@ -742,7 +857,6 @@ function getScale(el, W, H) {
   const dYMin = yTicks[0], dYMax = yTicks[yTicks.length - 1];
   return { pad, pw, ph, yTicks, dYMin, dYMax, dYRange: (dYMax - dYMin) || 1 };
 }
-
 function getDangerForChart(param, tStart, tEnd) {
   if (param.retardChart && dangerRetards.length) return { list: dangerRetards.filter(e => e.target === param.name && e.x >= tStart && e.x <= tEnd), color: '#FF1744', glow: 'rgba(255,23,68,.28)', badge: 'откат' };
   if (param.flapChart && throttleFlaps.length) return { list: throttleFlaps.filter(e => e.target === param.name && e.x >= tStart && e.x <= tEnd), color: '#FFAB00', glow: 'rgba(255,171,0,.28)', badge: 'хлопание' };
@@ -750,14 +864,12 @@ function getDangerForChart(param, tStart, tEnd) {
   if (param.knockChart && knockEvents.length) return { list: knockEvents.filter(e => e.target === param.name && e.x >= tStart && e.x <= tEnd), color: '#FF1744', glow: 'rgba(255,23,68,.28)', badge: 'детонация', isKnock: true };
   return null;
 }
-
 function dangerLabel(d, e) {
   if (d.badge === 'откат') return 'откат!';
   if (d.badge === 'хлопание') return 'хлопок';
   if (d.badge === 'детонация') return 'детонация';
   return TURBO_LABELS[e.kind] || 'турбо';
 }
-
 function drawChart(el) {
   const { canvas, param, pts, total, tStart, tEnd, avgInterval, wholeMax } = el;
   const ctx = canvas.getContext('2d');
@@ -767,42 +879,70 @@ function drawChart(el) {
   const { pad, pw, ph, yTicks, dYMin, dYMax, dYRange } = s;
   const xTicks = getNiceTicks(tStart, tEnd, Math.max(4, Math.min(10, Math.round(pw / 140))));
   ctx.fillStyle = '#161b22'; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = param.color; ctx.fillRect(8, 4.5, 4, 13);
-  ctx.font = '700 15px ' + SANS; ctx.textAlign = 'left'; ctx.fillStyle = '#e2e8f0';
-  ctx.fillText(param.name, 17, 16);
-  if (param.unit) { const nw = ctx.measureText(param.name).width; ctx.font = '11px ' + MONO; ctx.fillStyle = '#75808e'; ctx.fillText(param.unit, 23 + nw, 16); }
+
+  // адаптивные шрифты шапки графика
+  const isNarrow = W < 520;
+  const titleFont = (isNarrow ? '700 12.5px ' : '700 15px ') + SANS;
+  const statsFont = (isNarrow ? '11.5px ' : '13.5px ') + MONO;
+  const badgeFont = (isNarrow ? '700 10px ' : '700 11px ') + MONO;
+
   const danger = getDangerForChart(param, tStart, tEnd);
   const realPts = pts.filter(p => !p.isBoundary);
   const fullCoverage = realPts.length === total && total > 0;
   let stats = realPts.length + '/' + total + ' ' + plural(realPts.length);
   if (avgInterval > 0) stats += ' · Δt ' + avgInterval.toFixed(2) + 's';
   if (realPts.length) { const mm = minMax(realPts); stats += ' · ' + formatValue(mm.min) + '…' + formatValue(mm.max); }
-  let rightX = W - 8;
+  let nAnom = 0;
+  if (param.anomaly && realPts.length) { const [lo, hi] = param.anomaly; nAnom = realPts.reduce((n, p) => n + ((p.y < lo || p.y > hi) ? 1 : 0), 0); }
+
+  // измеряем правый блок, чтобы обрезать заголовок и не допустить наложения
+  ctx.font = statsFont;
+  const statsW = ctx.measureText(stats).width;
+  const anomW = nAnom ? ctx.measureText('⚠' + nAnom).width + 8 : 0;
+  let bText = null, badgeW = 0;
   if (danger && danger.list.length) {
-    const bText = '⚠ ' + danger.badge + ': ' + danger.list.length;
-    ctx.font = '700 11px ' + MONO;
+    bText = '⚠ ' + danger.badge + ': ' + danger.list.length;
+    ctx.font = badgeFont;
+    badgeW = ctx.measureText(bText).width + 16 + 10;
+  }
+  const rightW = statsW + anomW + badgeW;
+
+  // заголовок (с обрезкой при нехватке места)
+  ctx.fillStyle = param.color; ctx.fillRect(8, 4.5, 4, 13);
+  const titleAvail = Math.max(36, W - 8 - rightW - 17 - 8);
+  const titleStr = fitText(ctx, param.name, titleFont, titleAvail);
+  ctx.font = titleFont; ctx.textAlign = 'left'; ctx.fillStyle = '#e2e8f0';
+  ctx.fillText(titleStr, 17, 16);
+  const titleW = ctx.measureText(titleStr).width;
+  if (param.unit && 17 + titleW + 8 + 26 <= W - 8 - rightW) {
+    ctx.font = (isNarrow ? '10px ' : '11px ') + MONO; ctx.fillStyle = '#75808e';
+    ctx.fillText(param.unit, 17 + titleW + 6, 16);
+  }
+
+  // правый блок: бейдж → статистика → аномалии
+  let rightX = W - 8;
+  if (bText) {
+    ctx.font = badgeFont;
     const bw = ctx.measureText(bText).width + 16, bx = rightX - bw;
     ctx.fillStyle = 'rgba(10,13,17,.85)'; ctx.beginPath(); rrPath(ctx, bx, 3.5, bw, 17, 5); ctx.fill();
     ctx.strokeStyle = danger.color; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = danger.color; ctx.textAlign = 'center'; ctx.fillText(bText, bx + bw / 2, 16);
     rightX = bx - 10;
   }
-  ctx.font = '13.5px ' + MONO; ctx.textAlign = 'right';
+  ctx.font = statsFont; ctx.textAlign = 'right';
   ctx.fillStyle = fullCoverage ? '#9fd8a4' : '#7d9b80';
   ctx.fillText(stats, rightX, 16);
-  if (param.anomaly && realPts.length) {
-    const [lo, hi] = param.anomaly;
-    const nAnom = realPts.reduce((n, p) => n + ((p.y < lo || p.y > hi) ? 1 : 0), 0);
-    if (nAnom) { const sw = ctx.measureText(stats).width; ctx.fillStyle = '#FF5252'; ctx.fillText('⚠' + nAnom, rightX - sw - 4, 16); }
-  }
-  ctx.font = '13px ' + MONO;
+  if (nAnom) { ctx.fillStyle = '#FF5252'; ctx.fillText('⚠' + nAnom, rightX - statsW - 8, 16); }
+
+  // сетка
+  ctx.font = (isNarrow ? '11px ' : '13px ') + MONO;
   yTicks.forEach(v => {
     const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
     ctx.strokeStyle = 'rgba(255,255,255,.055)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
     ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'right'; ctx.fillText(tickLabel(v), pad.l - 6, y + 4);
   });
-  ctx.font = '10.5px ' + MONO;
+  ctx.font = (isNarrow ? '9.5px ' : '10.5px ') + MONO;
   xTicks.forEach(v => {
     const x = pad.l + pw * (v - tStart) / (tEnd - tStart);
     if (x < pad.l - 1 || x > W - pad.r + 1) return;
@@ -811,6 +951,8 @@ function drawChart(el) {
     ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'center';
     ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 5);
   });
+
+  // спецлинии
   if (param.zeroLine && dYMin < 0 && dYMax > 0) {
     const y0 = pad.t + ph * (1 - (0 - dYMin) / dYRange);
     ctx.strokeStyle = 'rgba(255,82,82,0.7)'; ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
@@ -828,6 +970,8 @@ function drawChart(el) {
     ctx.font = '700 10px ' + MONO; ctx.fillStyle = '#FF8A80'; ctx.textAlign = 'right';
     ctx.fillText('⚠ ' + param.alertLine + (param.unit || ''), W - pad.r - 4, ya - 4);
   }
+
+  // линия данных
   ctx.strokeStyle = param.color; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.beginPath();
   pts.forEach((p, i) => { const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart); const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
   ctx.stroke();
@@ -835,6 +979,8 @@ function drawChart(el) {
   const lastX = pad.l + pw * (pts[pts.length-1].x - tStart) / (tEnd - tStart);
   ctx.lineTo(lastX, pad.t + ph); ctx.lineTo(firstX, pad.t + ph); ctx.closePath();
   ctx.fillStyle = param.color + '1f'; ctx.fill();
+
+  // маркеры
   if (realPts.length && realPts.length <= 1500) {
     const baseR = realPts.length > 500 ? 2.3 : 3;
     realPts.forEach(p => {
@@ -854,6 +1000,7 @@ function drawChart(el) {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     });
   }
+  // маркеры опасных событий
   if (danger && danger.list.length && !param.knockChart) {
     danger.list.forEach(e => {
       const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
