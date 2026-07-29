@@ -59,6 +59,6 @@
 
 ## Автор и лицензия
 
-Автор — **larin992** (<larin992@gmail.com>). Разработано при поддержке Qwen (Alibaba Group).
+Автор — **Fanrok** (<https://github.com/fanrok>, <larin992@gmail.com>). Разработано при поддержке Qwen (Alibaba Group).
 
 Лицензия [MIT](LICENSE) — используйте, изменяйте и распространяйте свободно при сохранении упоминания автора.
