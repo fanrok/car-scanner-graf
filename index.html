@@ -135,6 +135,34 @@
     margin-top: 6px; overflow-x: auto; white-space: nowrap;
   }
 
+  /* ===== ПАНЕЛЬ ОПАСНЫХ СОБЫТИЙ ===== */
+  .events-panel {
+    position: relative; z-index: 1;
+    margin: 8px 0 4px;
+    background: linear-gradient(180deg, #241a1f, #1e1519);
+    border: 1px solid #4a2c35; border-left: 3px solid #FF5252;
+    border-radius: 8px; padding: 10px 12px;
+    animation: panelIn .35s ease;
+  }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .events-head { font-size: 12.5px; color: #e8b4b8; margin-bottom: 8px; }
+  .events-head b { color: #FF8A80; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  .events-hint { color: #8a7076; font-size: 11px; margin-left: 8px; }
+  .events-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 104px; overflow-y: auto; }
+  .event-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 11px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color: #f0cdd0; background: #2a1f25; border: 1px solid #5a3a43;
+    border-radius: 20px; padding: 4px 11px; cursor: pointer;
+    transition: all .15s ease;
+  }
+  .event-chip:hover { transform: translateY(-1px); border-color: #FF5252; box-shadow: 0 3px 12px rgba(255,82,82,.3); }
+  .event-chip.flap { color: #f2dab5; border-color: #63492c; background: #282019; }
+  .event-chip.flap:hover { border-color: #FFAB00; box-shadow: 0 3px 12px rgba(255,171,0,.3); }
+  .ev-time { color: #ffc966; font-weight: 700; }
+  .ev-dot { width: 7px; height: 7px; border-radius: 50%; background: #FF1744; box-shadow: 0 0 6px #FF1744; }
+  .event-chip.flap .ev-dot { background: #FFAB00; box-shadow: 0 0 6px #FFAB00; }
+
   #charts { position: relative; z-index: 1; }
   .chart-box {
     background: linear-gradient(180deg, #1d232b, #1a1f27);
@@ -154,6 +182,11 @@
     border-color: #4CAF50; cursor: grabbing; z-index: 10;
     box-shadow: 0 14px 34px rgba(0,0,0,.65), 0 0 0 1px #4CAF50;
     transform: scale(1.006); opacity: .95;
+  }
+  .chart-box.flash { animation: flashPulse .9s ease; }
+  @keyframes flashPulse {
+    0%, 100% { border-color: #262e39; box-shadow: none; }
+    30% { border-color: #FF5252; box-shadow: 0 0 0 3px rgba(255,82,82,.3), 0 0 26px rgba(255,82,82,.4); }
   }
   .canvas-wrapper { position: relative; }
   canvas { display: block; width: 100%; }
@@ -234,6 +267,14 @@
       Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
       Наведите курсор на график — увидите точное значение в этой точке.</p>
 
+      <h4>Анализатор опасных событий</h4>
+      <ul>
+        <li><b>Откат УОЗ</b>: отрицательный УОЗ при <b>ровных или растущих</b> оборотах — откат под нагрузкой (красный маркер «откат!»). Если обороты падают — это обычный сброс газа или переключение передачи.</li>
+        <li><b>Хлопание дросселя</b>: скачки ДПДЗ в зоне ~50–80% при ровных/растущих оборотах — оранжевый маркер «хлопок».</li>
+        <li>Все события за весь лог — в панели под шапкой. Клик по событию переносит к этому моменту и подсвечивает график.</li>
+        <li>Анализатор работает, только если в логе есть обороты + УОЗ (и ДПДЗ для хлопков).</li>
+      </ul>
+
       <h4>Перестановка графиков</h4>
       <p>Зажмите <kbd>ЛКМ</kbd> на любом графике и тяните вверх / вниз — порядок изменится.
       Он сохраняется автоматически.</p>
@@ -259,6 +300,13 @@
       </ul>
     </div>
   </div>
+</div>
+
+<div class="events-panel" id="eventsPanel" style="display:none">
+  <div class="events-head">⚠ Анализатор опасных событий — найдено: <b id="eventsCount"></b>
+    <span class="events-hint">клик по событию — переход к этому моменту</span>
+  </div>
+  <div class="events-list" id="eventsList"></div>
 </div>
 
 <div id="charts"></div>
@@ -292,14 +340,13 @@
 const MONO = 'ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace';
 const SANS = '"Segoe UI", system-ui, sans-serif';
 
-// Известные параметры (со спец-настройками). Рисуются первыми.
 const PARAMS = [
   { name: 'Обороты двигателя', unit: 'rpm', color: '#FFC107', minVal: 0 },
-  { name: 'Угол опережения зажигания', unit: '°', color: '#AB47BC', zeroLine: true, negColor: '#FF5252' },
+  { name: 'Угол опережения зажигания', unit: '°', color: '#AB47BC', zeroLine: true, negColor: '#FF5252', retardChart: true },
   { name: 'Кратковременная коррекция - Блок 1', unit: '%', color: '#26A69A', anomaly: [-15, 15], anomalyColor: '#FF5252' },
   { name: 'Давление во впускном коллекторе (абсолютное)', unit: 'kPa', color: '#FF7043', minVal: 0 },
   { name: 'Температура всасываемого воздуха', unit: '℃', color: '#EC407A', alertLine: 45 },
-  { name: 'Положение дроссельной заслонки', unit: '%', color: '#66BB6A', minVal: 0, maxVal: 100 },
+  { name: 'Положение дроссельной заслонки', unit: '%', color: '#66BB6A', minVal: 0, maxVal: 100, flapChart: true },
   { name: 'Скорость автомобиля', unit: 'km/h', color: '#42A5F5', minVal: 0 },
   { name: 'Массовый расход воздуха', unit: 'g/s', color: '#26C6DA', minVal: 0 },
   { name: 'Соотношение топливо/воздух', unit: '', color: '#FFA726' },
@@ -309,16 +356,22 @@ const PARAMS = [
   { name: 'Ускорение', unit: 'g', color: '#7E57C2' }
 ];
 
-// Палитра для неизвестных параметров
 const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC','#F6AEA9','#A8DAB5','#FFB77D','#D7A9E3','#AECBFA','#FDE293'];
+
+// Пороги анализатора
+const RPM_DROP_EPS = 15;      // падение оборотов больше этого = "падают" (норма)
+const FLAP_ZONE = [45, 85];   // зона ДПДЗ, в которой ищем хлопки (~50-80)
+const FLAP_AMP = 8;           // минимальное плечо зигзага ДПДЗ, %
+const FLAP_RPM_DROP = 30;     // если обороты упали больше — это не хлопание
 
 const CHART_H = 176;
 let allData = {}, extraNames = [], extraMeta = {}, chartOrder = [];
 let totalTime = 0, windowSize = 30, timePosition = 0;
 let canvasElements = [], mouseX = -1, rafPending = false, dragState = null;
+let dangerRetards = [], throttleFlaps = [];
 const dpr = window.devicePixelRatio || 1;
 
-// ===== НАСТРОЙКИ (cookies + localStorage как запасной) =====
+// ===== НАСТРОЙКИ (cookies + localStorage) =====
 function setCookie(name, value, days) {
   const d = new Date(); d.setTime(d.getTime() + (days || 365) * 864e5);
   document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
@@ -421,8 +474,6 @@ function updateControls() {
 }
 
 // ===== ПАРСЕР =====
-// Группы по 4 поля: timestamp; имя; значение; единица. Пустые токены не удаляются.
-// Известные параметры (PARAMS) рисуются первыми, все остальные — автоматически внизу.
 function parseAndDraw(text, fileName) {
   allData = {}; extraNames = []; extraMeta = {};
   PARAMS.forEach(p => allData[p.name] = []);
@@ -437,7 +488,6 @@ function parseAndDraw(text, fileName) {
       const val = parseFloat(tokens[i + 2].replace(',', '.'));
       if (!isNaN(val)) {
         if (!allData.hasOwnProperty(name)) {
-          // Неизвестный параметр — запоминаем и рисуем внизу
           extraMeta[name] = {
             name: name,
             unit: tokens[i + 3] || '',
@@ -485,7 +535,89 @@ function parseAndDraw(text, fileName) {
 
   timePosition = 0;
   updateControls();
+  runAnalysis();
   redrawCharts();
+}
+
+// ===== АНАЛИЗАТОР ОПАСНЫХ СОБЫТИЙ =====
+function runAnalysis() {
+  dangerRetards = [];
+  throttleFlaps = [];
+
+  const uoz = allData['Угол опережения зажигания'];
+  const rpm = allData['Обороты двигателя'];
+  const tps = allData['Положение дроссельной заслонки'];
+
+  // Откат УОЗ: отрицательный УОЗ + обороты НЕ падают afterwards
+  if (uoz && uoz.length >= 2 && rpm && rpm.length >= 2) {
+    let j = 0;
+    for (let k = 0; k < uoz.length; k++) {
+      const p = uoz[k];
+      if (p.y >= 0) continue;
+      while (j < rpm.length && rpm[j].x <= p.x) j++;
+      const a = rpm[j], b = rpm[j + 1];
+      if (!a || !b) continue;
+      const dropping = b.y < a.y - RPM_DROP_EPS;
+      if (!dropping) dangerRetards.push({ x: p.x, y: p.y, rpmA: a.y, rpmB: b.y });
+    }
+  }
+
+  // Хлопание дросселя: зигзаг ДПДЗ в зоне 45-85% при неповороте оборотов
+  if (tps && tps.length >= 3 && rpm && rpm.length >= 2) {
+    for (let k = 1; k < tps.length - 1; k++) {
+      const a = tps[k - 1], b = tps[k], c = tps[k + 1];
+      if (b.y < FLAP_ZONE[0] || b.y > FLAP_ZONE[1]) continue;
+      const d1 = b.y - a.y, d2 = c.y - b.y;
+      const zigzag = (d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0);
+      if (!zigzag || Math.abs(d1) < FLAP_AMP || Math.abs(d2) < FLAP_AMP) continue;
+      const r0 = getValueAtTime(rpm, a.x);
+      const r1 = getValueAtTime(rpm, c.x);
+      if (r0 === null || r1 === null) continue;
+      if (r1 >= r0 - FLAP_RPM_DROP) throttleFlaps.push({ x: b.x, y: b.y });
+    }
+  }
+
+  renderEventsPanel();
+}
+
+function renderEventsPanel() {
+  const panel = document.getElementById('eventsPanel');
+  const list = document.getElementById('eventsList');
+  const events = [];
+  dangerRetards.forEach(e => events.push({ x: e.x, type: 'retard', text: 'откат УОЗ ' + formatValue(e.y) + '°' }));
+  throttleFlaps.forEach(e => events.push({ x: e.x, type: 'flap', text: 'хлопание дросселя ' + formatValue(e.y) + '%' }));
+
+  if (!events.length) { panel.style.display = 'none'; return; }
+  events.sort((a, b) => a.x - b.x);
+
+  panel.style.display = 'block';
+  document.getElementById('eventsCount').textContent =
+    events.length + '  (откатов: ' + dangerRetards.length + ', хлопков: ' + throttleFlaps.length + ')';
+  list.innerHTML = '';
+
+  events.forEach(ev => {
+    const chip = document.createElement('button');
+    chip.className = 'event-chip' + (ev.type === 'flap' ? ' flap' : '');
+    chip.innerHTML = '<span class="ev-dot"></span><span class="ev-time">' + ev.x.toFixed(1) + 's</span>' + ev.text;
+    chip.addEventListener('click', () => jumpToEvent(ev));
+    list.appendChild(chip);
+  });
+}
+
+function jumpToEvent(ev) {
+  const maxPos = Math.max(0, totalTime - windowSize);
+  timePosition = Math.max(0, Math.min(maxPos, ev.x - windowSize / 3));
+  updateControls();
+  scheduleRedraw();
+  const targetName = ev.type === 'retard' ? 'Угол опережения зажигания' : 'Положение дроссельной заслонки';
+  setTimeout(() => {
+    const box = document.querySelector('#charts .chart-box[data-name="' + targetName + '"]');
+    if (box) {
+      box.classList.add('flash');
+      setTimeout(() => box.classList.remove('flash'), 950);
+      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, 60);
 }
 
 function getConfig(name) {
@@ -582,7 +714,7 @@ function redrawCharts() {
   window.scrollTo(0, keepScrollY);
 }
 
-// ===== ПЕРЕТАСКИВАНИЕ (перестановка графиков) =====
+// ===== ПЕРЕТАСКИВАНИЕ =====
 window.addEventListener('mousemove', e => {
   if (!dragState) return;
   if (!dragState.dragging) {
@@ -640,6 +772,7 @@ function drawChart(el) {
   ctx.fillStyle = '#161b22';
   ctx.fillRect(0, 0, W, H);
 
+  // Заголовок
   ctx.fillStyle = param.color;
   ctx.fillRect(8, 4.5, 4, 13);
   ctx.font = '700 15px ' + SANS;
@@ -653,6 +786,15 @@ function drawChart(el) {
     ctx.fillText(param.unit, 23 + nw, 16);
   }
 
+  // События в окне (откаты / хлопки)
+  let dangerInWin = null;
+  if (param.retardChart && dangerRetards.length) {
+    dangerInWin = dangerRetards.filter(e => e.x >= tStart && e.x <= tEnd);
+  } else if (param.flapChart && throttleFlaps.length) {
+    dangerInWin = throttleFlaps.filter(e => e.x >= tStart && e.x <= tEnd);
+  }
+
+  // Статистика
   const realPts = pts.filter(p => !p.isBoundary);
   const fullCoverage = realPts.length === total && total > 0;
   let stats = realPts.length + '/' + total + ' ' + plural(realPts.length);
@@ -661,10 +803,30 @@ function drawChart(el) {
     const mm = minMax(realPts);
     stats += ' · ' + formatValue(mm.min) + '…' + formatValue(mm.max);
   }
+
+  // Справа налево: бейдж событий → статистика → счётчик аномалий
+  let rightX = W - 8;
+  if (dangerInWin && dangerInWin.length) {
+    const isRetard = !!param.retardChart;
+    const bText = isRetard ? '⚠ откат: ' + dangerInWin.length : '⚠ хлопание: ' + dangerInWin.length;
+    ctx.font = '700 11px ' + MONO;
+    const bw = ctx.measureText(bText).width + 16;
+    const bx = rightX - bw;
+    ctx.fillStyle = isRetard ? '#8E1B1B' : '#7A4514';
+    ctx.beginPath(); ctx.roundRect(bx, 3.5, bw, 17, 5); ctx.fill();
+    ctx.strokeStyle = isRetard ? '#FF5252' : '#FFAB00';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(bText, bx + bw / 2, 16);
+    rightX = bx - 10;
+  }
+
   ctx.font = '13.5px ' + MONO;
   ctx.textAlign = 'right';
   ctx.fillStyle = fullCoverage ? '#9fd8a4' : '#7d9b80';
-  ctx.fillText(stats, W - 8, 16);
+  ctx.fillText(stats, rightX, 16);
 
   if (param.anomaly && realPts.length) {
     const [lo, hi] = param.anomaly;
@@ -672,10 +834,11 @@ function drawChart(el) {
     if (nAnom) {
       const sw = ctx.measureText(stats).width;
       ctx.fillStyle = '#FF5252';
-      ctx.fillText('⚠' + nAnom, W - 12 - sw, 16);
+      ctx.fillText('⚠' + nAnom, rightX - sw - 4, 16);
     }
   }
 
+  // Сетка Y
   ctx.font = '13px ' + MONO;
   yTicks.forEach(v => {
     const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
@@ -686,6 +849,7 @@ function drawChart(el) {
     ctx.fillText(tickLabel(v), pad.l - 6, y + 4);
   });
 
+  // Сетка X
   ctx.font = '10.5px ' + MONO;
   xTicks.forEach(v => {
     const x = pad.l + pw * (v - tStart) / (tEnd - tStart);
@@ -696,6 +860,7 @@ function drawChart(el) {
     ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 5);
   });
 
+  // Спецлинии
   if (param.zeroLine && dYMin < 0 && dYMax > 0) {
     const y0 = pad.t + ph * (1 - (0 - dYMin) / dYRange);
     ctx.strokeStyle = 'rgba(255,82,82,0.7)';
@@ -704,7 +869,6 @@ function drawChart(el) {
     ctx.beginPath(); ctx.moveTo(pad.l, y0); ctx.lineTo(W - pad.r, y0); ctx.stroke();
     ctx.setLineDash([]);
   }
-
   if (param.anomaly) {
     ctx.strokeStyle = 'rgba(255,82,82,0.4)';
     ctx.lineWidth = 1;
@@ -717,7 +881,6 @@ function drawChart(el) {
     });
     ctx.setLineDash([]);
   }
-
   if (param.alertLine !== undefined && wholeMax >= param.alertLine &&
       dYMin <= param.alertLine && dYMax >= param.alertLine) {
     const ya = pad.t + ph * (1 - (param.alertLine - dYMin) / dYRange);
@@ -732,6 +895,7 @@ function drawChart(el) {
     ctx.fillText('⚠ ' + param.alertLine + (param.unit || ''), W - pad.r - 4, ya - 4);
   }
 
+  // Линия данных
   ctx.strokeStyle = param.color;
   ctx.lineWidth = 1.5;
   ctx.lineJoin = 'round';
@@ -743,6 +907,7 @@ function drawChart(el) {
   });
   ctx.stroke();
 
+  // Заливка
   const firstX = pad.l + pw * (pts[0].x - tStart) / (tEnd - tStart);
   const lastX = pad.l + pw * (pts[pts.length - 1].x - tStart) / (tEnd - tStart);
   ctx.lineTo(lastX, pad.t + ph);
@@ -751,6 +916,7 @@ function drawChart(el) {
   ctx.fillStyle = param.color + '1f';
   ctx.fill();
 
+  // Маркеры реальных точек
   if (realPts.length && realPts.length <= 1500) {
     const baseR = realPts.length > 500 ? 2.3 : 3;
     realPts.forEach(p => {
@@ -770,6 +936,37 @@ function drawChart(el) {
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     });
+  }
+
+  // Маркеры опасных событий (откаты / хлопки)
+  if (dangerInWin && dangerInWin.length) {
+    const isRetard = !!param.retardChart;
+    const main = isRetard ? '#FF1744' : '#FFAB00';
+    const glow = isRetard ? 'rgba(255,23,68,.28)' : 'rgba(255,171,0,.28)';
+    dangerInWin.forEach(e => {
+      const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
+      const y = pad.t + ph * (1 - (e.y - dYMin) / dYRange);
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = main;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+    });
+    if (dangerInWin.length <= 8) {
+      ctx.font = '700 10.5px ' + SANS;
+      ctx.textAlign = 'center';
+      dangerInWin.forEach(e => {
+        const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
+        const y = pad.t + ph * (1 - (e.y - dYMin) / dYRange);
+        const ly = (y - 14 < pad.t + 10) ? y + 22 : y - 14;
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(10,13,17,.85)';
+        ctx.strokeText(isRetard ? 'откат!' : 'хлопок', x, ly);
+        ctx.fillStyle = main;
+        ctx.fillText(isRetard ? 'откат!' : 'хлопок', x, ly);
+      });
+    }
   }
 
   ctx.restore();
@@ -904,7 +1101,7 @@ function getNiceTicks(min, max, target) {
   return ticks;
 }
 
-// ===== ИНИЦИАЛИЗАЦИЯ: применяем сохранённые настройки =====
+// ===== ИНИЦИАЛИЗАЦИЯ =====
 (function init() {
   const sw = parseFloat(loadSetting('windowSize'));
   if (!isNaN(sw) && sw >= 5) windowSize = sw;
