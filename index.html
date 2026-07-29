@@ -244,23 +244,33 @@ function updateControls() {
     timePosition.toFixed(0) + '–' + (timePosition + windowSize).toFixed(0) + 's';
 }
 
-// ===== ПАРСЕР (оригинальная стабильная версия) =====
+// ===== ПАРСЕР =====
+// КАЖДЫЙ параметр в логе — это группа из 4 полей: timestamp; имя; значение; единица.
+// У некоторых параметров (AFR, лямбда-зонд) единица — ПУСТАЯ строка "".
+// Раньше пустые токены удалялись, группы сбивались с ритма, и парсер "съедал"
+// точку, идущую сразу после пустой единицы (чаще всего — УОЗ). Терялось до 70% точек.
+// Теперь пустые токены НЕ удаляются: пустая единица остаётся на своём месте
+// и сохраняет выравнивание групп. Данные больше не теряются.
 function parseAndDraw(text, fileName) {
   allData = {};
   PARAMS.forEach(p => allData[p.name] = []);
 
-  const tokens = text.split(/[;\r\n]+/).map(t => t.replace(/"/g, '').trim()).filter(t => t.length);
+  const tokens = text.replace(/^\uFEFF/, '').split(/[;\r\n]+/).map(t => t.replace(/"/g, '').trim());
+
   let i = 0, count = 0;
   while (i + 3 < tokens.length) {
     const ts = parseFloat(tokens[i].replace(',', '.'));
-    if (isNaN(ts)) { i++; continue; }
     const name = tokens[i + 1];
-    const val = parseFloat(tokens[i + 2].replace(',', '.'));
-    if (allData[name] !== undefined && !isNaN(val)) {
-      allData[name].push({ x: ts, y: val });
-      count++;
-      i += 4;
-    } else i++;
+    if (!isNaN(ts) && name && allData[name] !== undefined) {
+      const val = parseFloat(tokens[i + 2].replace(',', '.'));
+      if (!isNaN(val)) {
+        allData[name].push({ x: ts, y: val });
+        count++;
+        i += 4;
+        continue;
+      }
+    }
+    i++;
   }
 
   if (!count) {
@@ -325,7 +335,7 @@ function redrawCharts() {
     }
 
     // Для параметров с коридором аномалий — расширяем диапазон,
-    // чтобы обе границы (например -15 и +15) были видны всегда
+    // чтобы обе границы (-15 и +15) были видны всегда
     if (param.anomaly) {
       yMin = Math.min(yMin, param.anomaly[0]);
       yMax = Math.max(yMax, param.anomaly[1]);
