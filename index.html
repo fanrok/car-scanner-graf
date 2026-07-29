@@ -24,6 +24,9 @@
       linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
     background-size: 44px 44px;
   }
+  body.is-dragging { cursor: grabbing !important; user-select: none; }
+  body.is-dragging .main-canvas { cursor: grabbing !important; }
+
   .header {
     position: sticky; top: 0; z-index: 100;
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -88,7 +91,6 @@
   .chk:hover { color: #fff; }
   .chk input { accent-color: #4CAF50; width: 14px; height: 14px; cursor: pointer; }
 
-  /* ===== HELP ===== */
   kbd {
     font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
     font-size: 10px; color: #cfd6df; background: #232a33;
@@ -108,11 +110,12 @@
     box-shadow: 0 0 0 4px rgba(76,175,80,.15);
   }
   .help-panel {
-    position: absolute; top: calc(100% + 10px); right: 0; width: 370px;
+    position: absolute; top: calc(100% + 10px); right: 0; width: 380px;
     background: #1b2027; border: 1px solid #2f3945; border-radius: 10px;
     padding: 14px 16px; box-shadow: 0 16px 44px rgba(0,0,0,.55);
     opacity: 0; visibility: hidden; transform: translateY(-6px);
     transition: all .18s ease; z-index: 300; pointer-events: none;
+    max-height: 75vh; overflow-y: auto;
   }
   .help:hover .help-panel, .help:focus-within .help-panel {
     opacity: 1; visibility: visible; transform: translateY(0);
@@ -132,20 +135,31 @@
     margin-top: 6px; overflow-x: auto; white-space: nowrap;
   }
 
-  /* ===== CHARTS ===== */
   #charts { position: relative; z-index: 1; }
   .chart-box {
     background: linear-gradient(180deg, #1d232b, #1a1f27);
     border: 1px solid #262e39; border-radius: 7px;
-    margin: 4px 0; padding: 3px; transition: border-color .2s;
+    margin: 4px 0; padding: 3px; cursor: grab;
+    transition: border-color .2s, box-shadow .2s, transform .15s;
+    position: relative;
   }
   .chart-box:hover { border-color: #3d4a5c; }
+  .chart-box::after {
+    content: '⠿'; position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+    color: #55606e; font-size: 12px; opacity: 0; transition: opacity .2s;
+    pointer-events: none; z-index: 2;
+  }
+  .chart-box:hover::after { opacity: .85; }
+  .chart-box.dragging {
+    border-color: #4CAF50; cursor: grabbing; z-index: 10;
+    box-shadow: 0 14px 34px rgba(0,0,0,.65), 0 0 0 1px #4CAF50;
+    transform: scale(1.006); opacity: .95;
+  }
   .canvas-wrapper { position: relative; }
   canvas { display: block; width: 100%; }
   .overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
   .main-canvas { cursor: crosshair; border-radius: 5px; }
 
-  /* ===== EMPTY STATE ===== */
   .empty {
     position: relative; z-index: 1;
     margin: 60px auto; max-width: 520px; text-align: center; color: #6b7684;
@@ -217,7 +231,19 @@
     <div class="help-panel">
       <h4>Управление</h4>
       <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
-      Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.</p>
+      Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
+      Наведите курсор на график — увидите точное значение в этой точке.</p>
+
+      <h4>Перестановка графиков</h4>
+      <p>Зажмите <kbd>ЛКМ</kbd> на любом графике и тяните вверх / вниз — порядок изменится.
+      Он сохраняется автоматически.</p>
+
+      <h4>Данные и настройки</h4>
+      <ul>
+        <li>Неизвестные параметры из файла (например, расход топлива) рисуются автоматически <b>внизу</b>.</li>
+        <li>Если параметра нет в логе — его график просто не появляется.</li>
+        <li>Порядок графиков, окно и «Фикс. масштаб» сохраняются в cookies и применяются при следующем открытии.</li>
+      </ul>
 
       <h4>Экспорт из CarScanner Pro</h4>
       <p>Логгер → записать → <b>Экспорт / Поделиться</b> → CSV, <b>вертикальный формат</b>.
@@ -249,6 +275,11 @@
       Обычное колесо — прокрутка страницы вниз.
     </div>
     <div class="hint-card">
+      <div class="hint-title">Перестановка и сохранение</div>
+      Зажмите <kbd>ЛКМ</kbd> на графике и тяните вверх / вниз, чтобы изменить порядок.
+      Порядок, окно и масштаб сохраняются в cookies автоматически.
+    </div>
+    <div class="hint-card">
       <div class="hint-title">Как выгрузить лог из CarScanner Pro</div>
       Логгер → записать → <b>Экспорт / Поделиться</b> → CSV в <b>вертикальном виде</b>.
       Строки формата «время; имя; значение; единица» через точку с запятой:
@@ -261,6 +292,7 @@
 const MONO = 'ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace';
 const SANS = '"Segoe UI", system-ui, sans-serif';
 
+// Известные параметры (со спец-настройками). Рисуются первыми.
 const PARAMS = [
   { name: 'Обороты двигателя', unit: 'rpm', color: '#FFC107', minVal: 0 },
   { name: 'Угол опережения зажигания', unit: '°', color: '#AB47BC', zeroLine: true, negColor: '#FF5252' },
@@ -277,11 +309,53 @@ const PARAMS = [
   { name: 'Ускорение', unit: 'g', color: '#7E57C2' }
 ];
 
+// Палитра для неизвестных параметров
+const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC','#F6AEA9','#A8DAB5','#FFB77D','#D7A9E3','#AECBFA','#FDE293'];
+
 const CHART_H = 176;
-let allData = {}, totalTime = 0, windowSize = 30, timePosition = 0;
-let canvasElements = [], mouseX = -1, rafPending = false;
+let allData = {}, extraNames = [], extraMeta = {}, chartOrder = [];
+let totalTime = 0, windowSize = 30, timePosition = 0;
+let canvasElements = [], mouseX = -1, rafPending = false, dragState = null;
 const dpr = window.devicePixelRatio || 1;
 
+// ===== НАСТРОЙКИ (cookies + localStorage как запасной) =====
+function setCookie(name, value, days) {
+  const d = new Date(); d.setTime(d.getTime() + (days || 365) * 864e5);
+  document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+}
+function getCookie(name) {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function saveSetting(k, v) {
+  try { localStorage.setItem('logview_' + k, v); } catch (e) {}
+  try { setCookie('logview_' + k, v); } catch (e) {}
+}
+function loadSetting(k) {
+  const c = getCookie('logview_' + k);
+  if (c !== null && c !== '') return c;
+  try { return localStorage.getItem('logview_' + k); } catch (e) { return null; }
+}
+function saveOrder() {
+  const domOrder = Array.from(document.querySelectorAll('#charts .chart-box')).map(b => b.dataset.name);
+  const available = PARAMS.map(p => p.name).concat(extraNames);
+  available.forEach(n => { if (domOrder.indexOf(n) === -1) domOrder.push(n); });
+  chartOrder = domOrder;
+  saveSetting('chartOrder', JSON.stringify(domOrder));
+}
+function buildChartOrder() {
+  const available = PARAMS.map(p => p.name).concat(extraNames);
+  let saved = null;
+  try { saved = JSON.parse(loadSetting('chartOrder') || 'null'); } catch (e) {}
+  const order = [];
+  if (Array.isArray(saved)) {
+    saved.forEach(n => { if (available.indexOf(n) !== -1 && order.indexOf(n) === -1) order.push(n); });
+  }
+  available.forEach(n => { if (order.indexOf(n) === -1) order.push(n); });
+  return order;
+}
+
+// ===== ЗАГРУЗКА ФАЙЛА =====
 function loadFile(file) {
   const reader = new FileReader();
   reader.onload = ev => parseAndDraw(ev.target.result, file.name);
@@ -300,16 +374,17 @@ document.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
 });
 
+// ===== УПРАВЛЕНИЕ =====
 const wsSlider = document.getElementById('windowSize');
-document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.max(5, windowSize * 0.7); updateControls(); scheduleRedraw(); });
-document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.min(parseFloat(wsSlider.max), windowSize * 1.4); updateControls(); scheduleRedraw(); });
-document.getElementById('resetZoom').addEventListener('click', () => { windowSize = 30; timePosition = 0; updateControls(); scheduleRedraw(); });
-wsSlider.addEventListener('input', e => { windowSize = parseFloat(e.target.value); updateControls(); scheduleRedraw(); });
+document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.max(5, windowSize * 0.7); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
+document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.min(parseFloat(wsSlider.max), windowSize * 1.4); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
+document.getElementById('resetZoom').addEventListener('click', () => { windowSize = 30; timePosition = 0; updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
+wsSlider.addEventListener('input', e => { windowSize = parseFloat(e.target.value); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
 document.getElementById('timePosition').addEventListener('input', e => {
   timePosition = parseFloat(e.target.value) / 100 * Math.max(0, totalTime - windowSize);
   updateControls(); scheduleRedraw();
 });
-document.getElementById('fixedScale').addEventListener('change', () => scheduleRedraw());
+document.getElementById('fixedScale').addEventListener('change', e => { saveSetting('fixedScale', e.target.checked ? '1' : '0'); scheduleRedraw(); });
 
 window.addEventListener('wheel', e => {
   if (!e.shiftKey || totalTime <= 0) return;
@@ -346,12 +421,10 @@ function updateControls() {
 }
 
 // ===== ПАРСЕР =====
-// Группы по 4 поля: timestamp; имя; значение; единица.
-// Пустые токены НЕ удаляются — пустая единица ("") сохраняет выравнивание групп.
-// Если какого-то параметра в файле нет — его массив останется пустым,
-// график просто не отрисуется (защита в redrawCharts), ничего не упадёт.
+// Группы по 4 поля: timestamp; имя; значение; единица. Пустые токены не удаляются.
+// Известные параметры (PARAMS) рисуются первыми, все остальные — автоматически внизу.
 function parseAndDraw(text, fileName) {
-  allData = {};
+  allData = {}; extraNames = []; extraMeta = {};
   PARAMS.forEach(p => allData[p.name] = []);
 
   const tokens = text.replace(/^\uFEFF/, '').split(/[;\r\n]+/).map(t => t.replace(/"/g, '').trim());
@@ -360,9 +433,19 @@ function parseAndDraw(text, fileName) {
   while (i + 3 < tokens.length) {
     const ts = parseFloat(tokens[i].replace(',', '.'));
     const name = tokens[i + 1];
-    if (!isNaN(ts) && name && allData[name] !== undefined) {
+    if (!isNaN(ts) && name) {
       const val = parseFloat(tokens[i + 2].replace(',', '.'));
       if (!isNaN(val)) {
+        if (!allData.hasOwnProperty(name)) {
+          // Неизвестный параметр — запоминаем и рисуем внизу
+          extraMeta[name] = {
+            name: name,
+            unit: tokens[i + 3] || '',
+            color: EXTRA_COLORS[extraNames.length % EXTRA_COLORS.length]
+          };
+          extraNames.push(name);
+          allData[name] = [];
+        }
         allData[name].push({ x: ts, y: val });
         count++;
         i += 4;
@@ -378,28 +461,40 @@ function parseAndDraw(text, fileName) {
   }
 
   let minT = Infinity, maxT = 0;
-  PARAMS.forEach(p => {
-    const arr = allData[p.name];
+  for (const key in allData) {
+    const arr = allData[key];
     arr.sort((a, b) => a.x - b.x);
-    arr.forEach(pt => { if (pt.x < minT) minT = pt.x; if (pt.x > maxT) maxT = pt.x; });
-  });
-  PARAMS.forEach(p => allData[p.name].forEach(pt => pt.x -= minT));
+    for (let j = 0; j < arr.length; j++) {
+      if (arr[j].x < minT) minT = arr[j].x;
+      if (arr[j].x > maxT) maxT = arr[j].x;
+    }
+  }
+  for (const key in allData) {
+    const arr = allData[key];
+    for (let j = 0; j < arr.length; j++) arr[j].x -= minT;
+  }
   totalTime = maxT - minT;
 
   wsSlider.max = Math.max(300, Math.ceil(totalTime));
+  chartOrder = buildChartOrder();
 
   document.getElementById('empty').style.display = 'none';
+  const totalParams = Object.keys(allData).filter(k => allData[k].length).length;
   document.getElementById('fileInfo').textContent =
-    fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек';
+    fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек · ' + totalParams + ' параметров';
 
   timePosition = 0;
   updateControls();
   redrawCharts();
 }
 
+function getConfig(name) {
+  for (let i = 0; i < PARAMS.length; i++) if (PARAMS[i].name === name) return PARAMS[i];
+  return extraMeta[name] || { name: name, unit: '', color: '#9AA0A6' };
+}
+
+// ===== ОТРИСОВКА =====
 function redrawCharts() {
-  // Фикс «улёта вверх»: при пересоздании DOM браузер поджимает scrollY —
-  // запоминаем и восстанавливаем после перерисовки.
   const keepScrollY = window.scrollY;
 
   const container = document.getElementById('charts');
@@ -408,10 +503,10 @@ function redrawCharts() {
   const tStart = timePosition, tEnd = timePosition + windowSize;
   const fixed = document.getElementById('fixedScale').checked;
 
-  PARAMS.forEach(param => {
-    const pts = allData[param.name];
-    // Параметра нет в логе или мало точек — просто пропускаем, не падая
+  chartOrder.forEach(name => {
+    const pts = allData[name];
     if (!pts || pts.length < 2) return;
+    const param = getConfig(name);
 
     const visiblePts = pts.filter(p => p.x >= tStart && p.x <= tEnd);
 
@@ -437,7 +532,6 @@ function redrawCharts() {
       const mm = minMax(visiblePts.length ? visiblePts : extendedPts);
       yMin = mm.min; yMax = mm.max;
     }
-
     if (param.anomaly) {
       yMin = Math.min(yMin, param.anomaly[0]);
       yMax = Math.max(yMax, param.anomaly[1]);
@@ -445,6 +539,7 @@ function redrawCharts() {
 
     const box = document.createElement('div');
     box.className = 'chart-box';
+    box.dataset.name = name;
     const wrapper = document.createElement('div');
     wrapper.className = 'canvas-wrapper';
     box.appendChild(wrapper);
@@ -471,15 +566,55 @@ function redrawCharts() {
     drawChart(el);
 
     canvas.addEventListener('mousemove', e => {
+      if (dragState && dragState.dragging) return;
       const rect = canvas.getBoundingClientRect();
       mouseX = e.clientX - rect.left;
       updateOverlay();
     });
     canvas.addEventListener('mouseleave', () => { mouseX = -1; updateOverlay(); });
+
+    box.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      dragState = { box: box, startY: e.clientY, dragging: false };
+    });
   });
 
   window.scrollTo(0, keepScrollY);
 }
+
+// ===== ПЕРЕТАСКИВАНИЕ (перестановка графиков) =====
+window.addEventListener('mousemove', e => {
+  if (!dragState) return;
+  if (!dragState.dragging) {
+    if (Math.abs(e.clientY - dragState.startY) > 6) {
+      dragState.dragging = true;
+      dragState.box.classList.add('dragging');
+      document.body.classList.add('is-dragging');
+      mouseX = -1; updateOverlay();
+    } else return;
+  }
+  e.preventDefault();
+  const container = document.getElementById('charts');
+  const boxes = Array.from(container.querySelectorAll('.chart-box'));
+  const dragging = dragState.box;
+  let target = null;
+  for (let i = 0; i < boxes.length; i++) {
+    if (boxes[i] === dragging) continue;
+    const r = boxes[i].getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { target = boxes[i]; break; }
+  }
+  if (target) container.insertBefore(dragging, target);
+  else container.appendChild(dragging);
+});
+window.addEventListener('mouseup', () => {
+  if (!dragState) return;
+  if (dragState.dragging) {
+    dragState.box.classList.remove('dragging');
+    document.body.classList.remove('is-dragging');
+    saveOrder();
+  }
+  dragState = null;
+});
 
 function getScale(el, W, H) {
   const pad = { l: 58, r: 10, t: 24, b: 18 };
@@ -505,7 +640,6 @@ function drawChart(el) {
   ctx.fillStyle = '#161b22';
   ctx.fillRect(0, 0, W, H);
 
-  // Заголовок
   ctx.fillStyle = param.color;
   ctx.fillRect(8, 4.5, 4, 13);
   ctx.font = '700 15px ' + SANS;
@@ -519,7 +653,6 @@ function drawChart(el) {
     ctx.fillText(param.unit, 23 + nw, 16);
   }
 
-  // Статистика
   const realPts = pts.filter(p => !p.isBoundary);
   const fullCoverage = realPts.length === total && total > 0;
   let stats = realPts.length + '/' + total + ' ' + plural(realPts.length);
@@ -543,7 +676,6 @@ function drawChart(el) {
     }
   }
 
-  // Сетка Y + подписи (крупные, как дельта)
   ctx.font = '13px ' + MONO;
   yTicks.forEach(v => {
     const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
@@ -554,7 +686,6 @@ function drawChart(el) {
     ctx.fillText(tickLabel(v), pad.l - 6, y + 4);
   });
 
-  // Сетка X + подписи
   ctx.font = '10.5px ' + MONO;
   xTicks.forEach(v => {
     const x = pad.l + pw * (v - tStart) / (tEnd - tStart);
@@ -564,8 +695,6 @@ function drawChart(el) {
     ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'center';
     ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 5);
   });
-
-  // === СПЕЦИАЛЬНЫЕ ЛИНИИ (тонкие, прерывистые) ===
 
   if (param.zeroLine && dYMin < 0 && dYMax > 0) {
     const y0 = pad.t + ph * (1 - (0 - dYMin) / dYRange);
@@ -603,7 +732,6 @@ function drawChart(el) {
     ctx.fillText('⚠ ' + param.alertLine + (param.unit || ''), W - pad.r - 4, ya - 4);
   }
 
-  // Линия данных
   ctx.strokeStyle = param.color;
   ctx.lineWidth = 1.5;
   ctx.lineJoin = 'round';
@@ -615,7 +743,6 @@ function drawChart(el) {
   });
   ctx.stroke();
 
-  // Заливка
   const firstX = pad.l + pw * (pts[0].x - tStart) / (tEnd - tStart);
   const lastX = pad.l + pw * (pts[pts.length - 1].x - tStart) / (tEnd - tStart);
   ctx.lineTo(lastX, pad.t + ph);
@@ -624,14 +751,12 @@ function drawChart(el) {
   ctx.fillStyle = param.color + '1f';
   ctx.fill();
 
-  // Маркеры
   if (realPts.length && realPts.length <= 1500) {
     const baseR = realPts.length > 500 ? 2.3 : 3;
     realPts.forEach(p => {
       const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
       const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
       let fill = param.color, stroke = '#0e1116', r = baseR;
-
       const isAnomaly = param.anomaly && (p.y < param.anomaly[0] || p.y > param.anomaly[1]);
       if (isAnomaly) {
         fill = param.anomalyColor; stroke = '#fff'; r = baseR + 1.5;
@@ -640,7 +765,6 @@ function drawChart(el) {
       } else if (param.negColor && p.y < 0) {
         fill = param.negColor; stroke = '#fff';
       }
-
       ctx.fillStyle = fill;
       ctx.strokeStyle = stroke;
       ctx.lineWidth = 1;
@@ -665,7 +789,6 @@ function updateOverlay() {
 
     if (mouseX >= pad.l && mouseX <= W - pad.r) {
       const time = tStart + (mouseX - pad.l) / pw * (tEnd - tStart);
-
       ctx.strokeStyle = 'rgba(255,255,255,.4)';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
@@ -675,7 +798,6 @@ function updateOverlay() {
       const value = getValueAtTime(pts, time);
       if (value !== null) {
         const y = pad.t + ph * (1 - (value - dYMin) / dYRange);
-
         let ptColor = param.color;
         if (param.anomaly && (value < param.anomaly[0] || value > param.anomaly[1])) ptColor = param.anomalyColor;
         else if (param.negColor && value < 0) ptColor = param.negColor;
@@ -690,7 +812,6 @@ function updateOverlay() {
         let lx = mouseX + 9, ly = y - 8;
         if (lx + tw + 10 > W - pad.r) lx = mouseX - tw - 19;
         if (ly < pad.t + 12) ly = y + 18;
-
         ctx.fillStyle = 'rgba(10,13,17,.92)';
         ctx.strokeStyle = ptColor;
         ctx.lineWidth = 1;
@@ -782,6 +903,15 @@ function getNiceTicks(min, max, target) {
   for (let v = nMin; v <= nMax + 0.5 * spacing; v += spacing) ticks.push(parseFloat(v.toFixed(10)));
   return ticks;
 }
+
+// ===== ИНИЦИАЛИЗАЦИЯ: применяем сохранённые настройки =====
+(function init() {
+  const sw = parseFloat(loadSetting('windowSize'));
+  if (!isNaN(sw) && sw >= 5) windowSize = sw;
+  const sf = loadSetting('fixedScale');
+  if (sf === '1') document.getElementById('fixedScale').checked = true;
+  updateControls();
+})();
 </script>
 </body>
 </html>
