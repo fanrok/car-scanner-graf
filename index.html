@@ -165,6 +165,7 @@
   .event-chip.turbo .ev-dot { background: #40C4FF; box-shadow: 0 0 6px #40C4FF; }
   .event-chip.knock .ev-dot { animation: knockPulse 1.2s ease-in-out infinite; }
   @keyframes knockPulse { 0%,100% { box-shadow: 0 0 4px #FF1744; } 50% { box-shadow: 0 0 10px #FF1744, 0 0 18px rgba(255,23,68,.5); } }
+  .events-more { font-size: 11px; color: #8a7076; align-self: center; }
   #charts { position: relative; z-index: 1; }
   .chart-box {
     background: linear-gradient(180deg, #1d232b, #1a1f27);
@@ -219,7 +220,6 @@
     background: #3a2424; border: 1px solid #FF5252; color: #ffcdd2;
     padding: 14px 16px; border-radius: 8px; margin: 16px 0; font-size: 14px; line-height: 1.6;
   }
-  /* ===== ТАЙМЛАЙН (нижний скролл) ===== */
   .timeline {
     position: sticky; bottom: 0; z-index: 95;
     background: linear-gradient(#181c22, #151920);
@@ -288,7 +288,7 @@
         <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход.</li>
       </ul>
       <h4>Распознавание параметров</h4>
-      <p>Параметры определяются <b>по ключевым словам</b>, а не по точному имени — работает с разными авто и прошивками. Префиксы вроде <code style="display:inline;padding:1px 4px;margin:0">[ECM]</code> игнорируются. Неизвестные параметры рисуются внизу.</p>
+      <p>Параметры определяются <b>по ключевым словам</b>, а не по точному имени — работает с разными авто и прошивками. Префиксы вроде <code style="display:inline;padding:1px 4px;margin:0">[ECM]</code> игнорируются. Дубли вида «…x1000» отбрасываются. Неизвестные параметры рисуются внизу.</p>
       <h4>Данные и настройки</h4>
       <ul>
         <li>Если параметра нет в логе — его график не появляется.</li>
@@ -365,6 +365,10 @@ window.addEventListener('error', e => {
   if (fi && e.message) fi.textContent = '⚠ ' + e.message;
 });
 
+// Дубли-масштабы ("Обороты двигателя x1000" и т.п.) — отбрасываем при парсинге.
+// Чтобы исключить ещё какой-то параметр, добавьте regex сюда.
+const SKIP_PATTERNS = [/x\s*\d+\s*$/i];
+
 const ROLES = [
   { id:'rpm', match: n => /обороты\s+двигателя/i.test(n) && !/x1000/i.test(n), unit:'rpm', color:'#FFC107', minVal:0 },
   { id:'uoz', match: n => /опережени|уоз|ignition\s*(timing|angle)|угол.*зжиган/i.test(n), unit:'°', color:'#AB47BC', zeroLine:true, negColor:'#FF5252', retardChart:true, multi:true },
@@ -390,11 +394,11 @@ const MIN_RPM = 1000, TPS_RELEASED = 15, TPS_WOT = 84, LOAD_MIN = 25, RPM_DROP_E
 const FLAP_ZONE = [45, 85], FLAP_AMP = 8, FLAP_RPM_DROP = 30;
 const TURBO_UNDERBOOST = 0.3, TURBO_WOT_RPM = 2000, TURBO_DELTA = 0.5, TURBO_DROP_TPS = 50;
 const MERGE_RETARD = 2, MERGE_FLAP = 2, MERGE_TURBO = 3, MERGE_KNOCK = 2;
-const CHART_H = 176;
+const CHART_H = 176, MAX_CHIPS = 500;
 
 let allData = {}, paramConfigs = {}, roleParams = {}, chartOrder = [];
 let totalTime = 0, windowSize = 30, timePosition = 0;
-let canvasElements = [], mouseX = -1, rafPending = false, dragState = null;
+let chartEls = [], mouseX = -1, rafPending = false, dragState = null;
 let dangerRetards = [], throttleFlaps = [], turboEvents = [], knockEvents = [];
 let pendingFlash = null, chartTouch = null;
 const dpr = window.devicePixelRatio || 1;
@@ -432,12 +436,12 @@ document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-active'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
 
 const wsSlider = document.getElementById('windowSize');
-document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.round(Math.max(5, windowSize * 0.7)); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
-document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.round(Math.min(parseFloat(wsSlider.max), windowSize * 1.4)); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
-document.getElementById('resetZoom').addEventListener('click', () => { windowSize = 30; timePosition = 0; updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
-wsSlider.addEventListener('input', e => { windowSize = parseFloat(e.target.value); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
-document.getElementById('timePosition').addEventListener('input', e => { timePosition = parseFloat(e.target.value) / 100 * Math.max(0, totalTime - windowSize); updateControls(); scheduleRedraw(); });
-document.getElementById('fixedScale').addEventListener('change', e => { saveSetting('fixedScale', e.target.checked ? '1' : '0'); scheduleRedraw(); });
+document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.round(Math.max(5, windowSize * 0.7)); updateControls(); saveSetting('windowSize', windowSize); scheduleRender(); });
+document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.round(Math.min(parseFloat(wsSlider.max), windowSize * 1.4)); updateControls(); saveSetting('windowSize', windowSize); scheduleRender(); });
+document.getElementById('resetZoom').addEventListener('click', () => { windowSize = 30; timePosition = 0; updateControls(); saveSetting('windowSize', windowSize); scheduleRender(); });
+wsSlider.addEventListener('input', e => { windowSize = parseFloat(e.target.value); updateControls(); saveSetting('windowSize', windowSize); scheduleRender(); });
+document.getElementById('timePosition').addEventListener('input', e => { timePosition = parseFloat(e.target.value) / 100 * Math.max(0, totalTime - windowSize); updateControls(); scheduleRender(); });
+document.getElementById('fixedScale').addEventListener('change', e => { saveSetting('fixedScale', e.target.checked ? '1' : '0'); scheduleRender(); });
 document.getElementById('eventsHead').addEventListener('click', () => {
   const p = document.getElementById('eventsPanel');
   p.classList.toggle('open');
@@ -450,11 +454,22 @@ window.addEventListener('wheel', e => {
   const norm = raw * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 120 : 1);
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(maxPos, timePosition + norm * windowSize / 600));
-  updateControls(); scheduleRedraw();
+  updateControls(); scheduleRender();
 }, { passive: false });
 let resizeTimer;
-window.addEventListener('resize', () => { if (!totalTime) return; clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { redrawCharts(); updateTimeline(); }, 120); });
-function scheduleRedraw() { if (rafPending) return; rafPending = true; requestAnimationFrame(() => { rafPending = false; redrawCharts(); }); }
+window.addEventListener('resize', () => { if (!totalTime) return; clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { buildCharts(); renderAll(); updateTimeline(); }, 120); });
+
+function scheduleRender() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => { rafPending = false; renderAll(); applyPendingFlash(); });
+}
+function applyPendingFlash() {
+  if (!pendingFlash) return;
+  const box = document.querySelector('.chart-box[data-name="' + pendingFlash + '"]');
+  if (box) { box.classList.add('flash'); setTimeout(() => box.classList.remove('flash'), 950); box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  pendingFlash = null;
+}
 function updateControls() {
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(timePosition, maxPos));
@@ -465,7 +480,6 @@ function updateControls() {
   updateTimeline();
 }
 
-// ===== ТАЙМЛАЙН =====
 function updateTimeline() {
   const tl = document.getElementById('timeline');
   const track = document.getElementById('timelineTrack');
@@ -495,7 +509,7 @@ function updateTimeline() {
     x = Math.max(0, Math.min(maxLeft, x));
     const maxPos = Math.max(0, totalTime - windowSize);
     timePosition = maxLeft > 0 ? (x / maxLeft) * maxPos : 0;
-    updateControls(); scheduleRedraw();
+    updateControls(); scheduleRender();
   }
   track.addEventListener('pointerdown', e => { dragging = true; try { track.setPointerCapture(e.pointerId); } catch(_){} setFromX(e.clientX); });
   track.addEventListener('pointermove', e => { if (dragging) setFromX(e.clientX); });
@@ -503,7 +517,6 @@ function updateTimeline() {
   track.addEventListener('pointercancel', () => { dragging = false; });
 })();
 
-// ===== ЖЕСТЫ НА ГРАФИКАХ (тап / свайп / щипок) =====
 function pinchDist(ts) { const dx = ts[0].clientX - ts[1].clientX, dy = ts[0].clientY - ts[1].clientY; return Math.hypot(dx, dy); }
 function onChartTouchStart(e) {
   if (e.touches.length === 2) {
@@ -523,7 +536,7 @@ function onChartTouchMove(e) {
         const scale = d / chartTouch.d0;
         let nw = chartTouch.w0 / scale;
         nw = Math.max(5, Math.min(parseFloat(wsSlider.max) || 300, nw));
-        if (Math.abs(nw - windowSize) > 0.5) { windowSize = nw; updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); }
+        if (Math.abs(nw - windowSize) > 0.5) { windowSize = nw; updateControls(); saveSetting('windowSize', windowSize); scheduleRender(); }
       }
     }
     return;
@@ -543,7 +556,7 @@ function onChartTouchMove(e) {
     const pxPerSec = w / windowSize;
     const maxPos = Math.max(0, totalTime - windowSize);
     timePosition = Math.max(0, Math.min(maxPos, chartTouch.pos0 - dx / pxPerSec));
-    updateControls(); scheduleRedraw();
+    updateControls(); scheduleRender();
   }
 }
 function onChartTouchEnd(e) {
@@ -604,6 +617,7 @@ function parseAndDraw(text, fileName) {
     const ts = parseFloat(tokens[i].replace(',', '.'));
     const name = tokens[i + 1];
     if (!isNaN(ts) && name) {
+      if (SKIP_PATTERNS.some(re => re.test(name))) { i += 4; continue; } // дубли вида "…x1000"
       const val = parseFloat(tokens[i + 2].replace(',', '.'));
       if (!isNaN(val)) {
         if (!rawData.hasOwnProperty(name)) { rawData[name] = []; rawUnits[name] = tokens[i + 3] || ''; }
@@ -626,7 +640,7 @@ function parseAndDraw(text, fileName) {
   document.getElementById('empty').style.display = 'none';
   const totalParams = Object.keys(allData).filter(k => allData[k].length).length;
   document.getElementById('fileInfo').textContent = fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек · ' + totalParams + ' параметров';
-  timePosition = 0; updateControls(); runAnalysis(); redrawCharts();
+  timePosition = 0; updateControls(); runAnalysis(); buildCharts(); renderAll();
 }
 
 function getRoleData(roleId) { const n = roleParams[roleId]; return n && n.length ? allData[n[0]] : null; }
@@ -750,52 +764,38 @@ function renderEventsPanel() {
   if (turboEvents.length) parts.push('турбо: ' + turboEvents.length);
   document.getElementById('eventsCount').textContent = events.length + (parts.length ? '  (' + parts.join(', ') + ')' : '');
   list.innerHTML = '';
-  events.forEach(ev => {
+  const shown = events.slice(0, MAX_CHIPS);
+  shown.forEach(ev => {
     const chip = document.createElement('button');
     chip.className = 'event-chip' + (ev.type !== 'retard' ? ' ' + ev.type : '');
     chip.innerHTML = '<span class="ev-dot"></span><span class="ev-time">' + ev.x.toFixed(1) + 's</span>' + ev.text;
     chip.addEventListener('click', () => jumpToEvent(ev));
     list.appendChild(chip);
   });
+  if (events.length > MAX_CHIPS) {
+    const note = document.createElement('span');
+    note.className = 'events-more';
+    note.textContent = '+ ещё ' + (events.length - MAX_CHIPS) + ' событий';
+    list.appendChild(note);
+  }
 }
 function jumpToEvent(ev) {
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(maxPos, ev.x - windowSize / 3));
   pendingFlash = ev.target;
-  updateControls(); scheduleRedraw();
+  updateControls(); scheduleRender();
 }
 function getConfig(name) { return paramConfigs[name] || { name: name, shortName: name, unit: '', color: '#9AA0A6', role: 'extra' }; }
 
-function redrawCharts() {
-  const keepScrollY = window.scrollY;
+// ===== ПОСТРОЕНИЕ DOM (один раз на файл/ресайз) =====
+function buildCharts() {
   const container = document.getElementById('charts');
-  container.innerHTML = ''; canvasElements = [];
-  const tStart = timePosition, tEnd = timePosition + windowSize;
-  const fixed = document.getElementById('fixedScale').checked;
+  container.innerHTML = '';
+  chartEls = [];
   chartOrder.forEach(name => {
     const pts = allData[name];
     if (!pts || pts.length < 2) return;
     const param = getConfig(name);
-    const visiblePts = pts.filter(p => p.x >= tStart && p.x <= tEnd);
-    const extendedPts = [];
-    const sv = getValueAtTime(pts, tStart);
-    if (sv !== null) extendedPts.push({ x: tStart, y: sv, isBoundary: true });
-    visiblePts.forEach(p => extendedPts.push({ x: p.x, y: p.y, isBoundary: false }));
-    const ev = getValueAtTime(pts, tEnd);
-    if (ev !== null) extendedPts.push({ x: tEnd, y: ev, isBoundary: true });
-    if (extendedPts.length < 2) return;
-    let avgInterval = 0;
-    if (visiblePts.length > 1) avgInterval = (visiblePts[visiblePts.length-1].x - visiblePts[0].x) / (visiblePts.length - 1);
-    let yMin, yMax;
-    if (fixed) {
-      const mm = minMax(pts);
-      yMin = param.minVal !== undefined ? param.minVal : mm.min;
-      yMax = param.maxVal !== undefined ? param.maxVal : mm.max;
-    } else {
-      const mm = minMax(visiblePts.length ? visiblePts : extendedPts);
-      yMin = mm.min; yMax = mm.max;
-    }
-    if (param.anomaly) { yMin = Math.min(yMin, param.anomaly[0]); yMax = Math.max(yMax, param.anomaly[1]); }
     const box = document.createElement('div'); box.className = 'chart-box'; box.dataset.name = name;
     const wrapper = document.createElement('div'); wrapper.className = 'canvas-wrapper';
     box.appendChild(wrapper); container.appendChild(box);
@@ -805,48 +805,99 @@ function redrawCharts() {
     const overlay = document.createElement('canvas'); overlay.className = 'overlay';
     overlay.width = W * dpr; overlay.height = CHART_H * dpr; overlay.style.height = CHART_H + 'px';
     wrapper.appendChild(canvas); wrapper.appendChild(overlay);
-    const el = { canvas, overlay, param, pts: extendedPts, total: pts.length, wholeMax: minMax(pts).max, tStart, tEnd, avgInterval, yMin, yMax, fixed };
-    canvasElements.push(el); drawChart(el);
-    canvas.addEventListener('mousemove', e => { if (dragState && dragState.dragging) return; const rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; updateOverlay(); });
-    canvas.addEventListener('mouseleave', () => { mouseX = -1; updateOverlay(); });
-    canvas.addEventListener('touchstart', onChartTouchStart, { passive: true });
-    canvas.addEventListener('touchmove', onChartTouchMove, { passive: false });
-    canvas.addEventListener('touchend', onChartTouchEnd);
-    canvas.addEventListener('touchcancel', () => { chartTouch = null; });
-    box.addEventListener('pointerdown', e => {
-      if (e.button !== 0 || (e.pointerType && e.pointerType !== 'mouse')) return;
-      dragState = { box: box, startY: e.clientY, dragging: false };
-    });
+    const mm = minMax(pts);
+    const el = {
+      name, param, box, canvas, overlay,
+      total: pts.length, fullMin: mm.min, fullMax: mm.max, wholeMax: mm.max,
+      pts: [], tStart: 0, tEnd: 0, avgInterval: 0, yMin: 0, yMax: 0, fixed: false
+    };
+    attachChartListeners(el);
+    chartEls.push(el);
   });
-  window.scrollTo(0, keepScrollY);
-  if (pendingFlash) {
-    const box = container.querySelector('.chart-box[data-name="' + pendingFlash + '"]');
-    if (box) { box.classList.add('flash'); setTimeout(() => box.classList.remove('flash'), 950); box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-    pendingFlash = null;
-  }
+}
+function attachChartListeners(el) {
+  const canvas = el.canvas, box = el.box;
+  canvas.addEventListener('mousemove', e => {
+    if (dragState && dragState.dragging) return;
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    updateOverlay();
+  });
+  canvas.addEventListener('mouseleave', () => { mouseX = -1; updateOverlay(); });
+  canvas.addEventListener('touchstart', onChartTouchStart, { passive: true });
+  canvas.addEventListener('touchmove', onChartTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onChartTouchEnd);
+  canvas.addEventListener('touchcancel', () => { chartTouch = null; });
+  box.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || (e.pointerType && e.pointerType !== 'mouse')) return;
+    dragState = { box: box, startY: e.clientY, dragging: false };
+  });
 }
 
-function endDrag(saveIt) {
-  if (!dragState) return;
-  if (dragState.dragging) { dragState.box.classList.remove('dragging'); document.body.classList.remove('is-dragging'); if (saveIt) saveOrder(); }
-  dragState = null;
+// ===== РЕНДЕРИНГ (только перерисовка пикселей) =====
+function renderAll() {
+  const tStart = timePosition, tEnd = timePosition + windowSize;
+  const fixed = document.getElementById('fixedScale').checked;
+  for (let i = 0; i < chartEls.length; i++) renderChart(chartEls[i], tStart, tEnd, fixed);
 }
-window.addEventListener('mousemove', e => {
-  if (!dragState) return;
-  if (dragState.dragging && e.buttons === 0) { endDrag(true); return; }
-  if (!dragState.dragging) {
-    if (Math.abs(e.clientY - dragState.startY) > 6) { dragState.dragging = true; dragState.box.classList.add('dragging'); document.body.classList.add('is-dragging'); mouseX = -1; updateOverlay(); } else return;
+function renderChart(el, tStart, tEnd, fixed) {
+  const all = allData[el.name];
+  el.tStart = tStart; el.tEnd = tEnd; el.fixed = fixed;
+  const visiblePts = sliceRange(all, tStart, tEnd);
+  const extendedPts = [];
+  const sv = getValueAtTime(all, tStart);
+  if (sv !== null) extendedPts.push({ x: tStart, y: sv, isBoundary: true });
+  for (let i = 0; i < visiblePts.length; i++) extendedPts.push(visiblePts[i]);
+  const ev = getValueAtTime(all, tEnd);
+  if (ev !== null) extendedPts.push({ x: tEnd, y: ev, isBoundary: true });
+  el.pts = extendedPts;
+  el.avgInterval = visiblePts.length > 1 ? (visiblePts[visiblePts.length-1].x - visiblePts[0].x) / (visiblePts.length - 1) : 0;
+  let yMin, yMax;
+  if (fixed) {
+    yMin = el.param.minVal !== undefined ? el.param.minVal : el.fullMin;
+    yMax = el.param.maxVal !== undefined ? el.param.maxVal : el.fullMax;
+  } else {
+    const mm = minMax(extendedPts.length ? extendedPts : visiblePts);
+    yMin = mm.min; yMax = mm.max;
   }
-  e.preventDefault();
-  const container = document.getElementById('charts');
-  const boxes = Array.from(container.querySelectorAll('.chart-box'));
-  const dragging = dragState.box;
-  let target = null;
-  for (let i = 0; i < boxes.length; i++) { if (boxes[i] === dragging) continue; const r = boxes[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { target = boxes[i]; break; } }
-  if (target) container.insertBefore(dragging, target); else container.appendChild(dragging);
-});
-window.addEventListener('mouseup', () => endDrag(true));
-window.addEventListener('blur', () => endDrag(true));
+  if (el.param.anomaly) { yMin = Math.min(yMin, el.param.anomaly[0]); yMax = Math.max(yMax, el.param.anomaly[1]); }
+  el.yMin = yMin; el.yMax = yMax;
+  drawChart(el);
+}
+
+function lowerBound(pts, x) {
+  let lo = 0, hi = pts.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (pts[mid].x < x) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+function sliceRange(pts, tStart, tEnd) {
+  const i0 = lowerBound(pts, tStart);
+  const i1 = lowerBound(pts, tEnd + 1e-9);
+  return pts.slice(i0, i1);
+}
+// Децимация min/max по бакетам — сохраняет пики (откаты/детонацию), убирает лишнее
+function decimateForDraw(pts, maxPoints) {
+  const n = pts.length;
+  if (n <= maxPoints) return pts;
+  const out = [pts[0]];
+  const bucketCount = Math.max(1, Math.floor(maxPoints / 2));
+  const bucketSize = (n - 2) / bucketCount;
+  for (let b = 0; b < bucketCount; b++) {
+    const start = Math.floor(1 + b * bucketSize);
+    const end = Math.min(n - 1, Math.floor(1 + (b + 1) * bucketSize));
+    if (end <= start) continue;
+    let minIdx = start, maxIdx = start;
+    for (let k = start; k < end; k++) {
+      if (pts[k].y < pts[minIdx].y) minIdx = k;
+      if (pts[k].y > pts[maxIdx].y) maxIdx = k;
+    }
+    if (minIdx === maxIdx) out.push(pts[minIdx]);
+    else if (minIdx < maxIdx) { out.push(pts[minIdx]); out.push(pts[maxIdx]); }
+    else { out.push(pts[maxIdx]); out.push(pts[minIdx]); }
+  }
+  out.push(pts[n - 1]);
+  return out;
+}
 
 function getScale(el, W, H) {
   const pad = { l: 58, r: 10, t: 24, b: 18 };
@@ -880,7 +931,6 @@ function drawChart(el) {
   const xTicks = getNiceTicks(tStart, tEnd, Math.max(4, Math.min(10, Math.round(pw / 140))));
   ctx.fillStyle = '#161b22'; ctx.fillRect(0, 0, W, H);
 
-  // адаптивные шрифты шапки графика
   const isNarrow = W < 520;
   const titleFont = (isNarrow ? '700 12.5px ' : '700 15px ') + SANS;
   const statsFont = (isNarrow ? '11.5px ' : '13.5px ') + MONO;
@@ -895,7 +945,6 @@ function drawChart(el) {
   let nAnom = 0;
   if (param.anomaly && realPts.length) { const [lo, hi] = param.anomaly; nAnom = realPts.reduce((n, p) => n + ((p.y < lo || p.y > hi) ? 1 : 0), 0); }
 
-  // измеряем правый блок, чтобы обрезать заголовок и не допустить наложения
   ctx.font = statsFont;
   const statsW = ctx.measureText(stats).width;
   const anomW = nAnom ? ctx.measureText('⚠' + nAnom).width + 8 : 0;
@@ -907,7 +956,6 @@ function drawChart(el) {
   }
   const rightW = statsW + anomW + badgeW;
 
-  // заголовок (с обрезкой при нехватке места)
   ctx.fillStyle = param.color; ctx.fillRect(8, 4.5, 4, 13);
   const titleAvail = Math.max(36, W - 8 - rightW - 17 - 8);
   const titleStr = fitText(ctx, param.name, titleFont, titleAvail);
@@ -919,7 +967,6 @@ function drawChart(el) {
     ctx.fillText(param.unit, 17 + titleW + 6, 16);
   }
 
-  // правый блок: бейдж → статистика → аномалии
   let rightX = W - 8;
   if (bText) {
     ctx.font = badgeFont;
@@ -934,7 +981,6 @@ function drawChart(el) {
   ctx.fillText(stats, rightX, 16);
   if (nAnom) { ctx.fillStyle = '#FF5252'; ctx.fillText('⚠' + nAnom, rightX - statsW - 8, 16); }
 
-  // сетка
   ctx.font = (isNarrow ? '11px ' : '13px ') + MONO;
   yTicks.forEach(v => {
     const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
@@ -952,7 +998,6 @@ function drawChart(el) {
     ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 5);
   });
 
-  // спецлинии
   if (param.zeroLine && dYMin < 0 && dYMax > 0) {
     const y0 = pad.t + ph * (1 - (0 - dYMin) / dYRange);
     ctx.strokeStyle = 'rgba(255,82,82,0.7)'; ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
@@ -971,16 +1016,21 @@ function drawChart(el) {
     ctx.fillText('⚠ ' + param.alertLine + (param.unit || ''), W - pad.r - 4, ya - 4);
   }
 
-  // линия данных
+  // Линия (децимированная для скорости, пики сохранены)
+  const drawPts = decimateForDraw(pts, Math.max(300, Math.floor(pw * 2)));
   ctx.strokeStyle = param.color; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.beginPath();
-  pts.forEach((p, i) => { const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart); const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+  for (let i = 0; i < drawPts.length; i++) {
+    const p = drawPts[i];
+    const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
+    const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
   ctx.stroke();
-  const firstX = pad.l + pw * (pts[0].x - tStart) / (tEnd - tStart);
-  const lastX = pad.l + pw * (pts[pts.length-1].x - tStart) / (tEnd - tStart);
+  const firstX = pad.l + pw * (drawPts[0].x - tStart) / (tEnd - tStart);
+  const lastX = pad.l + pw * (drawPts[drawPts.length-1].x - tStart) / (tEnd - tStart);
   ctx.lineTo(lastX, pad.t + ph); ctx.lineTo(firstX, pad.t + ph); ctx.closePath();
   ctx.fillStyle = param.color + '1f'; ctx.fill();
 
-  // маркеры
   if (realPts.length && realPts.length <= 1500) {
     const baseR = realPts.length > 500 ? 2.3 : 3;
     realPts.forEach(p => {
@@ -1000,7 +1050,6 @@ function drawChart(el) {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     });
   }
-  // маркеры опасных событий
   if (danger && danger.list.length && !param.knockChart) {
     danger.list.forEach(e => {
       const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
@@ -1035,11 +1084,12 @@ function drawChart(el) {
 }
 
 function updateOverlay() {
-  canvasElements.forEach(el => {
+  for (let i = 0; i < chartEls.length; i++) {
+    const el = chartEls[i];
     const { overlay, param, pts, tStart, tEnd } = el;
     const ctx = overlay.getContext('2d');
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    if (mouseX < 0) return;
+    if (mouseX < 0) continue;
     ctx.save(); ctx.scale(dpr, dpr);
     const W = overlay.clientWidth, H = overlay.clientHeight;
     const s = getScale(el, W, H);
@@ -1069,7 +1119,7 @@ function updateOverlay() {
       }
     }
     ctx.restore();
-  });
+  }
 }
 
 function minMax(arr) { let min = Infinity, max = -Infinity; for (let i = 0; i < arr.length; i++) { const v = arr[i].y; if (v < min) min = v; if (v > max) max = v; } return { min, max }; }
