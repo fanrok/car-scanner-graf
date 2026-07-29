@@ -50,34 +50,34 @@
   .btn:hover { background: #2c3540; border-color: #4CAF50; color: #fff; transform: translateY(-1px); }
   .btn:active { transform: translateY(0) scale(.96); }
   .btn-add {
-    width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content:center;
+    width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content:center;
     background: linear-gradient(180deg, #5cbf60, #3f9e43); color: #fff;
-    border: none; border-radius: 7px; font-size: 20px; font-weight: 700; line-height: 1;
+    border: none; border-radius: 7px; font-size: 22px; font-weight: 700; line-height: 1;
     cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,.35); transition: all .15s ease;
   }
   .btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(76,175,80,.5); }
   .btn-add:active { transform: scale(.93); }
   .btn-add input { display: none; }
   .sep { width: 1px; height: 22px; background: #333c48; }
-  .slider-group { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 200px; }
+  .slider-group { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 180px; }
   .slider-group label {
     font-size: 10px; color: #8b95a3; font-weight: 700;
     text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; cursor: help;
   }
   input[type=range] {
     -webkit-appearance: none; appearance: none;
-    flex: 1; min-width: 90px; max-width: 320px; height: 4px; border-radius: 2px;
+    flex: 1; min-width: 80px; max-width: 320px; height: 4px; border-radius: 2px;
     background: #2c3540; outline: none; cursor: pointer;
   }
   input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
     background: #4CAF50; border: 2px solid #10131a; transition: box-shadow .15s;
   }
   input[type=range]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(76,175,80,.22); }
-  input[type=range]::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: #4CAF50; border: 2px solid #10131a; }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #4CAF50; border: 2px solid #10131a; }
   .readout {
     font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-    font-size: 11px; color: #ffc966; min-width: 92px; text-align: center;
+    font-size: 11px; color: #ffc966; min-width: 84px; text-align: center;
     background: #1b2027; border: 1px solid #2a313b; border-radius: 5px; padding: 3px 6px;
   }
   .chk {
@@ -85,7 +85,7 @@
     cursor: pointer; margin-left: auto; user-select: none; white-space: nowrap; transition: color .15s;
   }
   .chk:hover { color: #fff; }
-  .chk input { accent-color: #4CAF50; width: 14px; height: 14px; cursor: pointer; }
+  .chk input { accent-color: #4CAF50; width: 16px; height: 16px; cursor: pointer; }
   kbd {
     font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
     font-size: 10px; color: #cfd6df; background: #232a33;
@@ -93,7 +93,7 @@
   }
   .help { position: relative; margin-left: 6px; }
   .help-btn {
-    width: 26px; height: 26px; border-radius: 50%;
+    width: 28px; height: 28px; border-radius: 50%;
     background: #232a33; border: 1px solid #3a4656; color: #8b95a3;
     font-weight: 800; font-size: 13px; cursor: help;
     display: inline-flex; align-items: center; justify-content: center;
@@ -103,7 +103,8 @@
     color: #4CAF50; border-color: #4CAF50; transform: scale(1.1); box-shadow: 0 0 0 4px rgba(76,175,80,.15);
   }
   .help-panel {
-    position: absolute; top: calc(100% + 10px); right: 0; width: 400px;
+    position: absolute; top: calc(100% + 10px); right: 0;
+    width: min(390px, calc(100vw - 28px));
     opacity: 0; visibility: hidden; transform: translateY(-6px);
     transition: all .18s ease; z-index: 300; pointer-events: none;
   }
@@ -111,7 +112,7 @@
   .help-panel-body {
     background: #1b2027; border: 1px solid #2f3945; border-radius: 10px;
     padding: 14px 16px; box-shadow: 0 16px 44px rgba(0,0,0,.55);
-    max-height: 78vh; overflow-y: auto;
+    max-height: 70vh; overflow-y: auto;
   }
   .help:hover .help-panel, .help:focus-within .help-panel { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
   .help-panel h4 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px; color: #4CAF50; margin: 12px 0 5px; font-weight: 800; }
@@ -189,7 +190,7 @@
   .canvas-wrapper { position: relative; }
   canvas { display: block; width: 100%; }
   .overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
-  .main-canvas { cursor: crosshair; border-radius: 5px; }
+  .main-canvas { cursor: crosshair; border-radius: 5px; touch-action: pan-y; }
   .empty {
     position: relative; z-index: 1; margin: 60px auto; max-width: 520px; text-align: center; color: #6b7684;
     border: 2px dashed #2c3540; border-radius: 12px; padding: 40px 28px;
@@ -214,12 +215,23 @@
     background: rgba(16,19,23,.87); border: 2px dashed #4CAF50; border-radius: 12px;
     color: #4CAF50; font-size: 22px; font-weight: 700; pointer-events: none;
   }
+  .noscript-warn {
+    background: #3a2424; border: 1px solid #FF5252; color: #ffcdd2;
+    padding: 14px 16px; border-radius: 8px; margin: 16px 0; font-size: 14px; line-height: 1.6;
+  }
 </style>
 </head>
 <body>
+<noscript>
+  <div class="noscript-warn">
+    ⚠ Для работы нужен JavaScript. На iPhone откройте файл через <b>«Поделиться» → Safari</b>
+    (стандартный предпросмотр «Файлов» не выполняет скрипты). На Android — откройте в Chrome.
+  </div>
+</noscript>
+
 <div class="header">
   <div class="brand"><span class="logo">📊</span><b>ЛОГ</b><span class="file-info" id="fileInfo">файл не загружен</span></div>
-  <label class="btn-add" title="Открыть CSV (или перетащите файл в окно)">+<input type="file" id="fileInput" accept=".csv"></label>
+  <label class="btn-add" title="Открыть CSV (или перетащите файл в окно)">+<input type="file" id="fileInput" accept=".csv,text/csv,text/plain"></label>
   <div class="sep"></div>
   <button class="btn" id="zoomIn" title="Приблизить">🔍+</button>
   <button class="btn" id="zoomOut" title="Отдалить">🔍−</button>
@@ -234,13 +246,13 @@
       <h4>Управление</h4>
       <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
       Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
-      Наведите курсор на график — увидите точное значение.<br>
-      Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка (сохраняется).</p>
+      Наведите курсор (или тапните на телефоне) на график — увидите точное значение.<br>
+      Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка (только мышью, сохраняется).</p>
       <h4>Анализатор опасных событий</h4>
       <ul>
-        <li><b>Откат УОЗ</b> (красный): минусовой УОЗ при оборотах &gt; 1000, нажатой педали (ДПДЗ ≥ 15%) и неповороте оборотов. Поддерживается <b>УОЗ по цилиндрам</b> — каждый анализируется отдельно. Если рядом зафиксирована детонация — жёлтое кольцо + метка «⚡детонация».</li>
-        <li><b>Детонация</b> (пульсирующий красный): сигнал «Knock detected» = 1 из ЭБУ — прямое подтверждение детонации.</li>
-        <li><b>Хлопание дросселя</b> (оранжевый): скачки ДПДЗ ~50–80% при оборотах &gt; 1000 без их падения.</li>
+        <li><b>Откат УОЗ</b> (красный): минусовой УОЗ при оборотах &gt; 1000, нажатой педали (ДПДЗ ≥ 15%) и неповороте оборотов. Поддерживается <b>УОЗ по цилиндрам</b>. Если рядом детонация — жёлтое кольцо + «⚡детонация».</li>
+        <li><b>Детонация</b> (пульсирующий красный): сигнал «Knock detected» = 1 из ЭБУ.</li>
+        <li><b>Хлопание дросселя</b> (оранжевый): скачки ДПДЗ ~50–80% при оборотах &gt; 1000.</li>
         <li><b>Аномалии турбины</b> (голубой): недодув при тапке в пол, резкий сброс / скачок наддува.</li>
         <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход к моменту.</li>
       </ul>
@@ -285,8 +297,8 @@
   <b>Загрузите CSV-лог</b>
   Нажмите «+» или просто перетащите файл в окно
   <div class="empty-hints">
-    <div class="hint-card"><div class="hint-title">Навигация</div><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка по времени. Обычное колесо — прокрутка страницы.</div>
-    <div class="hint-card"><div class="hint-title">Перестановка и сохранение</div>Зажмите <kbd>ЛКМ</kbd> на графике и тяните вверх / вниз. Порядок сохраняется в cookies.</div>
+    <div class="hint-card"><div class="hint-title">Навигация</div><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка по времени. На телефоне — ползунки. Тап по графику показывает значение.</div>
+    <div class="hint-card"><div class="hint-title">На телефоне</div>Открывайте файл в <b>браузере</b> (Safari / Chrome), а не в предпросмотре «Файлов» — там не выполняется JavaScript.</div>
     <div class="hint-card"><div class="hint-title">Экспорт из CarScanner Pro</div>Логгер → записать → Экспорт → CSV, вертикальный формат:<code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code></div>
   </div>
 </div>
@@ -295,7 +307,23 @@
 const MONO = 'ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace';
 const SANS = '"Segoe UI", system-ui, sans-serif';
 
-// ===== РОЛИ ПАРАМЕТРОВ (fuzzy matching по ключевым словам) =====
+// Полифил скруглённого прямоугольника (ctx.roundRect есть не везде, особенно на мобильных)
+function rrPath(ctx, x, y, w, h, r) {
+  if (typeof ctx.roundRect === 'function') { ctx.roundRect(x, y, w, h, r); return; }
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Видимые ошибки — чтобы с телефона можно было понять, что пошло не так
+window.addEventListener('error', e => {
+  const fi = document.getElementById('fileInfo');
+  if (fi && e.message) fi.textContent = '⚠ ' + e.message;
+});
+
 const ROLES = [
   { id:'rpm', match: n => /обороты\s+двигателя/i.test(n) && !/x1000/i.test(n), unit:'rpm', color:'#FFC107', minVal:0 },
   { id:'uoz', match: n => /опережени|уоз|ignition\s*(timing|angle)|угол.*зжиган/i.test(n), unit:'°', color:'#AB47BC', zeroLine:true, negColor:'#FF5252', retardChart:true, multi:true },
@@ -318,7 +346,6 @@ const ROLES = [
 const MULTI_PALETTE = ['#AB47BC','#7E57C2','#5C6BC0','#42A5F5','#26C6DA','#26A69A','#9CCC65','#FFCA28','#FFA726','#FF7043','#EF5350','#EC407A'];
 const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC','#F6AEA9','#A8DAB5','#FFB77D','#D7A9E3','#AECBFA','#FDE293'];
 
-// ===== Пороги анализатора =====
 const MIN_RPM = 1000, TPS_RELEASED = 15, TPS_WOT = 84, LOAD_MIN = 25, RPM_DROP_EPS = 15;
 const FLAP_ZONE = [45, 85], FLAP_AMP = 8, FLAP_RPM_DROP = 30;
 const TURBO_UNDERBOOST = 0.3, TURBO_WOT_RPM = 2000, TURBO_DELTA = 0.5, TURBO_DROP_TPS = 50;
@@ -332,7 +359,6 @@ let dangerRetards = [], throttleFlaps = [], turboEvents = [], knockEvents = [];
 let pendingFlash = null;
 const dpr = window.devicePixelRatio || 1;
 
-// ===== НАСТРОЙКИ =====
 function setCookie(n, v, d) { const e = new Date(); e.setTime(e.getTime() + (d||365)*864e5); document.cookie = n+'='+encodeURIComponent(v)+';expires='+e.toUTCString()+';path=/;SameSite=Lax'; }
 function getCookie(n) { const m = document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)')); return m ? decodeURIComponent(m[1]) : null; }
 function saveSetting(k, v) { try { localStorage.setItem('logview_'+k, v); } catch(e){} try { setCookie('logview_'+k, v); } catch(e){} }
@@ -352,8 +378,15 @@ function applySavedOrder(available) {
   return order;
 }
 
-// ===== ЗАГРУЗКА =====
-function loadFile(file) { const r = new FileReader(); r.onload = ev => parseAndDraw(ev.target.result, file.name); r.readAsText(file); }
+function loadFile(file) {
+  const r = new FileReader();
+  r.onload = ev => {
+    try { parseAndDraw(ev.target.result, file.name); }
+    catch (err) { document.getElementById('fileInfo').textContent = '⚠ Ошибка разбора: ' + err.message; }
+  };
+  r.onerror = () => { document.getElementById('fileInfo').textContent = '⚠ Не удалось прочитать файл'; };
+  r.readAsText(file);
+}
 document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
 let dragDepth = 0;
 document.addEventListener('dragenter', e => { e.preventDefault(); if (++dragDepth === 1) document.body.classList.add('drop-active'); });
@@ -361,7 +394,6 @@ document.addEventListener('dragleave', e => { e.preventDefault(); if (--dragDept
 document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-active'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
 
-// ===== УПРАВЛЕНИЕ =====
 const wsSlider = document.getElementById('windowSize');
 document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.round(Math.max(5, windowSize * 0.7)); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
 document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.round(Math.min(parseFloat(wsSlider.max), windowSize * 1.4)); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
@@ -395,7 +427,6 @@ function updateControls() {
   document.getElementById('timePositionDisplay').textContent = timePosition.toFixed(0) + '–' + (timePosition + windowSize).toFixed(0) + 's';
 }
 
-// ===== ПАРСЕР + КЛАССИФИКАЦИЯ =====
 function makeShortName(name, roleId) {
   if (roleId === 'uoz') {
     const m = name.match(/цилиндр\s*[:.]?\s*(\d+)/i) || name.match(/cyl(?:inder)?\s*[:.]?\s*(\d+)/i) || name.match(/(\d+)\s*$/);
@@ -408,9 +439,7 @@ function makeShortName(name, roleId) {
 }
 
 function classifyParams(rawData, rawUnits) {
-  allData = rawData;
-  paramConfigs = {};
-  roleParams = {};
+  allData = rawData; paramConfigs = {}; roleParams = {};
   ROLES.forEach(r => roleParams[r.id] = []);
   const names = Object.keys(rawData);
   const classified = new Set();
@@ -433,9 +462,7 @@ function classifyParams(rawData, rawUnits) {
     });
   });
   const extras = names.filter(n => !classified.has(n));
-  extras.forEach((n, idx) => {
-    paramConfigs[n] = { name: n, shortName: n, unit: rawUnits[n] || '', color: EXTRA_COLORS[idx % EXTRA_COLORS.length], role: 'extra' };
-  });
+  extras.forEach((n, idx) => { paramConfigs[n] = { name: n, shortName: n, unit: rawUnits[n] || '', color: EXTRA_COLORS[idx % EXTRA_COLORS.length], role: 'extra' }; });
   const defaultOrder = [];
   ROLES.forEach(role => roleParams[role.id].forEach(n => defaultOrder.push(n)));
   extras.forEach(n => defaultOrder.push(n));
@@ -475,7 +502,6 @@ function parseAndDraw(text, fileName) {
   timePosition = 0; updateControls(); runAnalysis(); redrawCharts();
 }
 
-// ===== АНАЛИЗАТОР =====
 function getRoleData(roleId) { const n = roleParams[roleId]; return n && n.length ? allData[n[0]] : null; }
 function getRoleNames(roleId) { return roleParams[roleId] || []; }
 
@@ -485,9 +511,7 @@ function runAnalysis() {
   const speed = getRoleData('speed'), tps = getRoleData('throttle');
   const load = getRoleData('load'), boost = getRoleData('boost');
   if (rpm && rpm.length >= 2) {
-    getRoleNames('uoz').forEach(uozName => {
-      dangerRetards = dangerRetards.concat(detectRetards(uozName, rpm, tps, load, knock));
-    });
+    getRoleNames('uoz').forEach(uozName => { dangerRetards = dangerRetards.concat(detectRetards(uozName, rpm, tps, load, knock)); });
     dangerRetards.sort((a, b) => a.x - b.x);
     dangerRetards = dedup(dangerRetards, MERGE_RETARD);
   }
@@ -625,7 +649,6 @@ function jumpToEvent(ev) {
 
 function getConfig(name) { return paramConfigs[name] || { name: name, shortName: name, unit: '', color: '#9AA0A6', role: 'extra' }; }
 
-// ===== ОТРИСОВКА =====
 function redrawCharts() {
   const keepScrollY = window.scrollY;
   const container = document.getElementById('charts');
@@ -669,7 +692,16 @@ function redrawCharts() {
     canvasElements.push(el); drawChart(el);
     canvas.addEventListener('mousemove', e => { if (dragState && dragState.dragging) return; const rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; updateOverlay(); });
     canvas.addEventListener('mouseleave', () => { mouseX = -1; updateOverlay(); });
-    box.addEventListener('mousedown', e => { if (e.button !== 0) return; dragState = { box: box, startY: e.clientY, dragging: false }; });
+    // Тач: тап/проведение пальцем показывает значение (скролл страницы не ломается)
+    const onTouch = e => { const t = e.touches[0]; if (!t) return; const rect = canvas.getBoundingClientRect(); mouseX = t.clientX - rect.left; updateOverlay(); };
+    canvas.addEventListener('touchstart', onTouch, { passive: true });
+    canvas.addEventListener('touchmove', onTouch, { passive: true });
+    canvas.addEventListener('touchend', () => { setTimeout(() => { mouseX = -1; updateOverlay(); }, 1500); });
+    // Drag только мышью (на тач-устройствах не срабатывает)
+    box.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || (e.pointerType && e.pointerType !== 'mouse')) return;
+      dragState = { box: box, startY: e.clientY, dragging: false };
+    });
   });
   window.scrollTo(0, keepScrollY);
   if (pendingFlash) {
@@ -750,7 +782,7 @@ function drawChart(el) {
     const bText = '⚠ ' + danger.badge + ': ' + danger.list.length;
     ctx.font = '700 11px ' + MONO;
     const bw = ctx.measureText(bText).width + 16, bx = rightX - bw;
-    ctx.fillStyle = 'rgba(10,13,17,.85)'; ctx.beginPath(); ctx.roundRect(bx, 3.5, bw, 17, 5); ctx.fill();
+    ctx.fillStyle = 'rgba(10,13,17,.85)'; ctx.beginPath(); rrPath(ctx, bx, 3.5, bw, 17, 5); ctx.fill();
     ctx.strokeStyle = danger.color; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = danger.color; ctx.textAlign = 'center'; ctx.fillText(bText, bx + bw / 2, 16);
     rightX = bx - 10;
@@ -803,13 +835,11 @@ function drawChart(el) {
   const lastX = pad.l + pw * (pts[pts.length-1].x - tStart) / (tEnd - tStart);
   ctx.lineTo(lastX, pad.t + ph); ctx.lineTo(firstX, pad.t + ph); ctx.closePath();
   ctx.fillStyle = param.color + '1f'; ctx.fill();
-  // Маркеры
   if (realPts.length && realPts.length <= 1500) {
     const baseR = realPts.length > 500 ? 2.3 : 3;
     realPts.forEach(p => {
       const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
       const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
-      // Knock chart: подсветка точек = 1
       if (param.knockChart && p.y >= 0.5) {
         ctx.fillStyle = 'rgba(255,23,68,.28)'; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2); ctx.fill();
@@ -824,13 +854,11 @@ function drawChart(el) {
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     });
   }
-  // Маркеры опасных событий (откаты/хлопки/турбо)
   if (danger && danger.list.length && !param.knockChart) {
     danger.list.forEach(e => {
       const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
       const y = pad.t + ph * (1 - (e.y - dYMin) / dYRange);
       ctx.fillStyle = danger.glow; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.fill();
-      // Жёлтое кольцо если откат подтверждён детонацией
       if (e.knockConfirmed) { ctx.strokeStyle = '#FFD600'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 8.5, 0, Math.PI*2); ctx.stroke(); }
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = danger.color; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
@@ -847,7 +875,6 @@ function drawChart(el) {
       });
     }
   }
-  // Подписи детонации на knock-графике
   if (param.knockChart && danger && danger.list.length && danger.list.length <= 8) {
     ctx.font = '700 10.5px ' + SANS; ctx.textAlign = 'center';
     danger.list.forEach(e => {
@@ -890,7 +917,7 @@ function updateOverlay() {
         if (lx + tw + 10 > W - pad.r) lx = mouseX - tw - 19;
         if (ly < pad.t + 12) ly = y + 18;
         ctx.fillStyle = 'rgba(10,13,17,.92)'; ctx.strokeStyle = ptColor; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.roundRect(lx - 5, ly - 11, tw + 10, 17, 3); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); rrPath(ctx, lx - 5, ly - 11, tw + 10, 17, 3); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(label, lx, ly + 1);
       }
     }
@@ -898,7 +925,6 @@ function updateOverlay() {
   });
 }
 
-// ===== ХЕЛПЕРЫ =====
 function minMax(arr) { let min = Infinity, max = -Infinity; for (let i = 0; i < arr.length; i++) { const v = arr[i].y; if (v < min) min = v; if (v > max) max = v; } return { min, max }; }
 function getValueAtTime(pts, time) {
   const n = pts.length;
