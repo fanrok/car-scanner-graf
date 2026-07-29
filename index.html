@@ -87,6 +87,52 @@
   }
   .chk:hover { color: #fff; }
   .chk input { accent-color: #4CAF50; width: 14px; height: 14px; cursor: pointer; }
+
+  /* ===== HELP ===== */
+  kbd {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 10px; color: #cfd6df; background: #232a33;
+    border: 1px solid #3a4656; border-bottom-width: 2px; border-radius: 4px;
+    padding: 1px 6px; white-space: nowrap;
+  }
+  .help { position: relative; margin-left: 6px; }
+  .help-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #232a33; border: 1px solid #3a4656; color: #8b95a3;
+    font-weight: 800; font-size: 13px; cursor: help;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all .15s ease; outline: none;
+  }
+  .help:hover .help-btn, .help:focus-within .help-btn {
+    color: #4CAF50; border-color: #4CAF50; transform: scale(1.1);
+    box-shadow: 0 0 0 4px rgba(76,175,80,.15);
+  }
+  .help-panel {
+    position: absolute; top: calc(100% + 10px); right: 0; width: 370px;
+    background: #1b2027; border: 1px solid #2f3945; border-radius: 10px;
+    padding: 14px 16px; box-shadow: 0 16px 44px rgba(0,0,0,.55);
+    opacity: 0; visibility: hidden; transform: translateY(-6px);
+    transition: all .18s ease; z-index: 300; pointer-events: none;
+  }
+  .help:hover .help-panel, .help:focus-within .help-panel {
+    opacity: 1; visibility: visible; transform: translateY(0);
+  }
+  .help-panel h4 {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px;
+    color: #4CAF50; margin: 12px 0 5px; font-weight: 800;
+  }
+  .help-panel h4:first-child { margin-top: 0; }
+  .help-panel p, .help-panel li { font-size: 12px; color: #aeb7c2; line-height: 1.55; }
+  .help-panel ul { padding-left: 17px; }
+  .help-panel li { margin: 3px 0; }
+  .help-panel code {
+    display: block; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 10.5px; color: #ffc966; background: #12161c;
+    border: 1px solid #2a313b; border-radius: 6px; padding: 7px 9px;
+    margin-top: 6px; overflow-x: auto; white-space: nowrap;
+  }
+
+  /* ===== CHARTS ===== */
   #charts { position: relative; z-index: 1; }
   .chart-box {
     background: linear-gradient(180deg, #1d232b, #1a1f27);
@@ -98,16 +144,36 @@
   canvas { display: block; width: 100%; }
   .overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
   .main-canvas { cursor: crosshair; border-radius: 5px; }
+
+  /* ===== EMPTY STATE ===== */
   .empty {
     position: relative; z-index: 1;
-    margin: 70px auto; max-width: 440px; text-align: center; color: #6b7684;
-    border: 2px dashed #2c3540; border-radius: 12px; padding: 46px 24px;
+    margin: 60px auto; max-width: 520px; text-align: center; color: #6b7684;
+    border: 2px dashed #2c3540; border-radius: 12px; padding: 40px 28px;
   }
   .empty .big { font-size: 42px; margin-bottom: 12px; }
   .empty b { color: #cfd6df; font-size: 16px; display: block; margin-bottom: 6px; }
+  .empty-hints { margin-top: 22px; text-align: left; display: flex; flex-direction: column; gap: 12px; }
+  .hint-card {
+    background: #1b2027; border: 1px solid #2a313b; border-radius: 8px;
+    padding: 12px 14px; font-size: 12.5px; color: #aeb7c2; line-height: 1.6;
+    transition: border-color .2s;
+  }
+  .hint-card:hover { border-color: #3d4a5c; }
+  .hint-card .hint-title {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px;
+    color: #4CAF50; font-weight: 800; margin-bottom: 5px;
+  }
+  .hint-card code {
+    display: block; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 10.5px; color: #ffc966; background: #12161c;
+    border: 1px solid #2a313b; border-radius: 6px; padding: 7px 9px;
+    margin: 7px 0 4px; overflow-x: auto; white-space: nowrap;
+  }
+
   .drop-active::after {
     content: '⬇ Отпустите CSV-файл';
-    position: fixed; inset: 10px; z-index: 300;
+    position: fixed; inset: 10px; z-index: 400;
     display: flex; align-items: center; justify-content: center;
     background: rgba(16,19,23,.87);
     border: 2px dashed #4CAF50; border-radius: 12px;
@@ -145,6 +211,28 @@
   <label class="chk" title="Минимум/максимум оси Y по всему логу, а не по видимому окну">
     <input type="checkbox" id="fixedScale">Фикс. масштаб
   </label>
+
+  <div class="help">
+    <button class="help-btn" tabindex="0" aria-label="Справка">?</button>
+    <div class="help-panel">
+      <h4>Управление</h4>
+      <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
+      Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.</p>
+
+      <h4>Экспорт из CarScanner Pro</h4>
+      <p>Логгер → записать → <b>Экспорт / Поделиться</b> → CSV, <b>вертикальный формат</b>.
+      Каждая строка: время; имя; значение; единица — через <b>;</b></p>
+      <code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code>
+
+      <h4>Как уменьшить Δt (интервал опроса)</h4>
+      <ul>
+        <li>Включите оптимизацию опроса в настройках CarScanner (пакетный режим).</li>
+        <li>Используйте быстрый адаптер — например <b>vLinker</b> (дешёвые ELM327 сильно медленнее).</li>
+        <li>Уменьшите число параметров на панели приборов — опрашивается только видимое.</li>
+        <li>Отключите постоянное считывание расхода топлива — оно тормозит весь цикл.</li>
+      </ul>
+    </div>
+  </div>
 </div>
 
 <div id="charts"></div>
@@ -152,8 +240,21 @@
 <div class="empty" id="empty">
   <div class="big">📂</div>
   <b>Загрузите CSV-лог</b>
-  Нажмите «+» или просто перетащите файл в окно<br>
-  <span style="font-size:12px">Позиция: ползунок или Shift + колесо мыши</span>
+  Нажмите «+» или просто перетащите файл в окно
+
+  <div class="empty-hints">
+    <div class="hint-card">
+      <div class="hint-title">Навигация</div>
+      <kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка графика по времени влево / вправо.
+      Обычное колесо — прокрутка страницы вниз.
+    </div>
+    <div class="hint-card">
+      <div class="hint-title">Как выгрузить лог из CarScanner Pro</div>
+      Логгер → записать → <b>Экспорт / Поделиться</b> → CSV в <b>вертикальном виде</b>.
+      Строки формата «время; имя; значение; единица» через точку с запятой:
+      <code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -246,8 +347,9 @@ function updateControls() {
 
 // ===== ПАРСЕР =====
 // Группы по 4 поля: timestamp; имя; значение; единица.
-// Пустые токены НЕ удаляются: пустая единица ("") остаётся на своём месте
-// и сохраняет выравнивание групп — данные не теряются.
+// Пустые токены НЕ удаляются — пустая единица ("") сохраняет выравнивание групп.
+// Если какого-то параметра в файле нет — его массив останется пустым,
+// график просто не отрисуется (защита в redrawCharts), ничего не упадёт.
 function parseAndDraw(text, fileName) {
   allData = {};
   PARAMS.forEach(p => allData[p.name] = []);
@@ -296,8 +398,8 @@ function parseAndDraw(text, fileName) {
 }
 
 function redrawCharts() {
-  // Фикс «улёта вверх»: при пересоздании DOM высота страницы временно
-  // схлопывается и браузер поджимает scrollY. Запоминаем и возвращаем.
+  // Фикс «улёта вверх»: при пересоздании DOM браузер поджимает scrollY —
+  // запоминаем и восстанавливаем после перерисовки.
   const keepScrollY = window.scrollY;
 
   const container = document.getElementById('charts');
@@ -308,6 +410,7 @@ function redrawCharts() {
 
   PARAMS.forEach(param => {
     const pts = allData[param.name];
+    // Параметра нет в логе или мало точек — просто пропускаем, не падая
     if (!pts || pts.length < 2) return;
 
     const visiblePts = pts.filter(p => p.x >= tStart && p.x <= tEnd);
@@ -379,7 +482,7 @@ function redrawCharts() {
 }
 
 function getScale(el, W, H) {
-  const pad = { l: 48, r: 10, t: 24, b: 16 };
+  const pad = { l: 58, r: 10, t: 24, b: 18 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
   const yRange = (el.yMax - el.yMin) || 1;
   const yPad = yRange * 0.06;
@@ -440,25 +543,26 @@ function drawChart(el) {
     }
   }
 
-  // Сетка Y
-  ctx.font = '9px ' + MONO;
+  // Сетка Y + подписи (крупные, как дельта)
+  ctx.font = '13px ' + MONO;
   yTicks.forEach(v => {
     const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
     ctx.strokeStyle = 'rgba(255,255,255,.055)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-    ctx.fillStyle = '#7a8594'; ctx.textAlign = 'right';
-    ctx.fillText(tickLabel(v), pad.l - 4, y + 3);
+    ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'right';
+    ctx.fillText(tickLabel(v), pad.l - 6, y + 4);
   });
 
-  // Сетка X
+  // Сетка X + подписи
+  ctx.font = '10.5px ' + MONO;
   xTicks.forEach(v => {
     const x = pad.l + pw * (v - tStart) / (tEnd - tStart);
     if (x < pad.l - 1 || x > W - pad.r + 1) return;
     ctx.strokeStyle = 'rgba(255,255,255,.045)';
     ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
-    ctx.fillStyle = '#7a8594'; ctx.textAlign = 'center';
-    ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 4);
+    ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'center';
+    ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 5);
   });
 
   // === СПЕЦИАЛЬНЫЕ ЛИНИИ (тонкие, прерывистые) ===
@@ -493,7 +597,7 @@ function drawChart(el) {
     ctx.setLineDash([5, 4]);
     ctx.beginPath(); ctx.moveTo(pad.l, ya); ctx.lineTo(W - pad.r, ya); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font = '700 9px ' + MONO;
+    ctx.font = '700 10px ' + MONO;
     ctx.fillStyle = '#FF8A80';
     ctx.textAlign = 'right';
     ctx.fillText('⚠ ' + param.alertLine + (param.unit || ''), W - pad.r - 4, ya - 4);
