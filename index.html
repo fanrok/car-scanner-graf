@@ -26,7 +26,6 @@
   }
   body.is-dragging { cursor: grabbing !important; user-select: none; }
   body.is-dragging .main-canvas { cursor: grabbing !important; }
-
   .header {
     position: sticky; top: 0; z-index: 100;
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -46,8 +45,7 @@
   .btn {
     padding: 5px 11px; background: #232a33; color: #cfd6df;
     border: 1px solid #333c48; border-radius: 6px; cursor: pointer;
-    font-size: 12.5px; font-weight: 600; white-space: nowrap;
-    transition: all .15s ease;
+    font-size: 12.5px; font-weight: 600; white-space: nowrap; transition: all .15s ease;
   }
   .btn:hover { background: #2c3540; border-color: #4CAF50; color: #fff; transform: translateY(-1px); }
   .btn:active { transform: translateY(0) scale(.96); }
@@ -76,9 +74,7 @@
     background: #4CAF50; border: 2px solid #10131a; transition: box-shadow .15s;
   }
   input[type=range]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(76,175,80,.22); }
-  input[type=range]::-moz-range-thumb {
-    width: 11px; height: 11px; border-radius: 50%; background: #4CAF50; border: 2px solid #10131a;
-  }
+  input[type=range]::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: #4CAF50; border: 2px solid #10131a; }
   .readout {
     font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
     font-size: 11px; color: #ffc966; min-width: 92px; text-align: center;
@@ -90,12 +86,10 @@
   }
   .chk:hover { color: #fff; }
   .chk input { accent-color: #4CAF50; width: 14px; height: 14px; cursor: pointer; }
-
   kbd {
     font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
     font-size: 10px; color: #cfd6df; background: #232a33;
-    border: 1px solid #3a4656; border-bottom-width: 2px; border-radius: 4px;
-    padding: 1px 6px; white-space: nowrap;
+    border: 1px solid #3a4656; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; white-space: nowrap;
   }
   .help { position: relative; margin-left: 6px; }
   .help-btn {
@@ -106,32 +100,21 @@
     transition: all .15s ease; outline: none;
   }
   .help:hover .help-btn, .help:focus-within .help-btn {
-    color: #4CAF50; border-color: #4CAF50; transform: scale(1.1);
-    box-shadow: 0 0 0 4px rgba(76,175,80,.15);
+    color: #4CAF50; border-color: #4CAF50; transform: scale(1.1); box-shadow: 0 0 0 4px rgba(76,175,80,.15);
   }
-  /* Панель справки: внешний блок без overflow (чтобы мостик не обрезался),
-     скролл — на внутреннем .help-panel-body */
   .help-panel {
-    position: absolute; top: calc(100% + 10px); right: 0; width: 390px;
+    position: absolute; top: calc(100% + 10px); right: 0; width: 400px;
     opacity: 0; visibility: hidden; transform: translateY(-6px);
     transition: all .18s ease; z-index: 300; pointer-events: none;
   }
-  /* Невидимый мостик над панелью — не даёт :hover слететь при движении мыши вниз */
-  .help-panel::before {
-    content: ''; position: absolute; left: 0; right: 0; top: -12px; height: 12px;
-  }
+  .help-panel::before { content: ''; position: absolute; left: 0; right: 0; top: -12px; height: 12px; }
   .help-panel-body {
     background: #1b2027; border: 1px solid #2f3945; border-radius: 10px;
     padding: 14px 16px; box-shadow: 0 16px 44px rgba(0,0,0,.55);
     max-height: 78vh; overflow-y: auto;
   }
-  .help:hover .help-panel, .help:focus-within .help-panel {
-    opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto;
-  }
-  .help-panel h4 {
-    font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px;
-    color: #4CAF50; margin: 12px 0 5px; font-weight: 800;
-  }
+  .help:hover .help-panel, .help:focus-within .help-panel { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
+  .help-panel h4 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px; color: #4CAF50; margin: 12px 0 5px; font-weight: 800; }
   .help-panel h4:first-child { margin-top: 0; }
   .help-panel p, .help-panel li { font-size: 12px; color: #aeb7c2; line-height: 1.55; }
   .help-panel ul { padding-left: 17px; }
@@ -141,68 +124,62 @@
   .help-panel code {
     display: block; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
     font-size: 10.5px; color: #ffc966; background: #12161c;
-    border: 1px solid #2a313b; border-radius: 6px; padding: 7px 9px;
-    margin-top: 6px; overflow-x: auto; white-space: nowrap;
+    border: 1px solid #2a313b; border-radius: 6px; padding: 7px 9px; margin-top: 6px; overflow-x: auto; white-space: nowrap;
   }
-
   .events-panel {
-    position: relative; z-index: 1;
-    margin: 8px 0 4px;
+    position: relative; z-index: 1; margin: 8px 0 4px;
     background: linear-gradient(180deg, #241a1f, #1e1519);
     border: 1px solid #4a2c35; border-left: 3px solid #FF5252;
-    border-radius: 8px; padding: 10px 12px;
-    animation: panelIn .35s ease;
+    border-radius: 8px; padding: 10px 12px; animation: panelIn .35s ease;
   }
   @keyframes panelIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
   .events-head {
     display: flex; align-items: center; gap: 8px; width: 100%;
     background: none; border: none; padding: 0; cursor: pointer;
-    font: inherit; font-size: 12.5px; color: #e8b4b8; text-align: left;
-    transition: color .15s;
+    font: inherit; font-size: 12.5px; color: #e8b4b8; text-align: left; transition: color .15s;
   }
   .events-head:hover { color: #ffd4d7; }
   .events-head b { color: #FF8A80; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
   .events-caret { display: inline-block; font-size: 10px; color: #FF8A80; transition: transform .2s ease; }
   .events-panel.open .events-caret { transform: rotate(90deg); }
   .events-hint { color: #8a7076; font-size: 11px; margin-left: auto; }
-  .events-list { display: none; flex-wrap: wrap; gap: 6px; max-height: 110px; overflow-y: auto; margin-top: 9px; }
+  .events-list { display: none; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; margin-top: 9px; }
   .events-panel.open .events-list { display: flex; animation: listIn .25s ease; }
   @keyframes listIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
   .event-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 11px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
     color: #f0cdd0; background: #2a1f25; border: 1px solid #5a3a43;
-    border-radius: 20px; padding: 4px 11px; cursor: pointer;
-    transition: all .15s ease;
+    border-radius: 20px; padding: 4px 11px; cursor: pointer; transition: all .15s ease;
   }
   .event-chip:hover { transform: translateY(-1px); border-color: #FF5252; box-shadow: 0 3px 12px rgba(255,82,82,.3); }
   .event-chip.flap { color: #f2dab5; border-color: #63492c; background: #282019; }
   .event-chip.flap:hover { border-color: #FFAB00; box-shadow: 0 3px 12px rgba(255,171,0,.3); }
   .event-chip.turbo { color: #cfeeff; border-color: #2a5a6b; background: #16242b; }
   .event-chip.turbo:hover { border-color: #40C4FF; box-shadow: 0 3px 12px rgba(64,196,255,.3); }
-  .ev-dot { width: 7px; height: 7px; border-radius: 50%; background: #FF1744; box-shadow: 0 0 6px #FF1744; }
+  .event-chip.knock { color: #ffcdd2; border-color: #7a2a2a; background: #2d1418; }
+  .event-chip.knock:hover { border-color: #FF1744; box-shadow: 0 3px 12px rgba(255,23,68,.4); }
+  .ev-dot { width: 7px; height: 7px; border-radius: 50%; background: #FF1744; box-shadow: 0 0 6px #FF1744; flex-shrink: 0; }
   .event-chip.flap .ev-dot { background: #FFAB00; box-shadow: 0 0 6px #FFAB00; }
   .event-chip.turbo .ev-dot { background: #40C4FF; box-shadow: 0 0 6px #40C4FF; }
-
+  .event-chip.knock .ev-dot { animation: knockPulse 1.2s ease-in-out infinite; }
+  @keyframes knockPulse { 0%,100% { box-shadow: 0 0 4px #FF1744; } 50% { box-shadow: 0 0 10px #FF1744, 0 0 18px rgba(255,23,68,.5); } }
   #charts { position: relative; z-index: 1; }
   .chart-box {
     background: linear-gradient(180deg, #1d232b, #1a1f27);
     border: 1px solid #262e39; border-radius: 7px;
     margin: 4px 0; padding: 3px; cursor: grab;
-    transition: border-color .2s, box-shadow .2s, transform .15s;
-    position: relative;
+    transition: border-color .2s, box-shadow .2s, transform .15s; position: relative;
   }
   .chart-box:hover { border-color: #3d4a5c; }
   .chart-box::after {
     content: '⠿'; position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
-    color: #55606e; font-size: 12px; opacity: 0; transition: opacity .2s;
-    pointer-events: none; z-index: 2;
+    color: #55606e; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 2;
   }
   .chart-box:hover::after { opacity: .85; }
   .chart-box.dragging {
     border-color: #4CAF50; cursor: grabbing; z-index: 10;
-    box-shadow: 0 14px 34px rgba(0,0,0,.65), 0 0 0 1px #4CAF50;
-    transform: scale(1.006); opacity: .95;
+    box-shadow: 0 14px 34px rgba(0,0,0,.65), 0 0 0 1px #4CAF50; transform: scale(1.006); opacity: .95;
   }
   .chart-box.flash { animation: flashPulse .9s ease; }
   @keyframes flashPulse {
@@ -213,10 +190,8 @@
   canvas { display: block; width: 100%; }
   .overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
   .main-canvas { cursor: crosshair; border-radius: 5px; }
-
   .empty {
-    position: relative; z-index: 1;
-    margin: 60px auto; max-width: 520px; text-align: center; color: #6b7684;
+    position: relative; z-index: 1; margin: 60px auto; max-width: 520px; text-align: center; color: #6b7684;
     border: 2px dashed #2c3540; border-radius: 12px; padding: 40px 28px;
   }
   .empty .big { font-size: 42px; margin-bottom: 12px; }
@@ -224,107 +199,73 @@
   .empty-hints { margin-top: 22px; text-align: left; display: flex; flex-direction: column; gap: 12px; }
   .hint-card {
     background: #1b2027; border: 1px solid #2a313b; border-radius: 8px;
-    padding: 12px 14px; font-size: 12.5px; color: #aeb7c2; line-height: 1.6;
-    transition: border-color .2s;
+    padding: 12px 14px; font-size: 12.5px; color: #aeb7c2; line-height: 1.6; transition: border-color .2s;
   }
   .hint-card:hover { border-color: #3d4a5c; }
-  .hint-card .hint-title {
-    font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px;
-    color: #4CAF50; font-weight: 800; margin-bottom: 5px;
-  }
+  .hint-card .hint-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px; color: #4CAF50; font-weight: 800; margin-bottom: 5px; }
   .hint-card code {
     display: block; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
     font-size: 10.5px; color: #ffc966; background: #12161c;
-    border: 1px solid #2a313b; border-radius: 6px; padding: 7px 9px;
-    margin: 7px 0 4px; overflow-x: auto; white-space: nowrap;
+    border: 1px solid #2a313b; border-radius: 6px; padding: 7px 9px; margin: 7px 0 4px; overflow-x: auto; white-space: nowrap;
   }
-
   .drop-active::after {
-    content: '⬇ Отпустите CSV-файл';
-    position: fixed; inset: 10px; z-index: 400;
+    content: '⬇ Отпустите CSV-файл'; position: fixed; inset: 10px; z-index: 400;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(16,19,23,.87);
-    border: 2px dashed #4CAF50; border-radius: 12px;
-    color: #4CAF50; font-size: 22px; font-weight: 700;
-    pointer-events: none;
+    background: rgba(16,19,23,.87); border: 2px dashed #4CAF50; border-radius: 12px;
+    color: #4CAF50; font-size: 22px; font-weight: 700; pointer-events: none;
   }
 </style>
 </head>
 <body>
-
 <div class="header">
-  <div class="brand">
-    <span class="logo">📊</span>
-    <b>ЛОГ</b>
-    <span class="file-info" id="fileInfo">файл не загружен</span>
-  </div>
-  <label class="btn-add" title="Открыть CSV (или перетащите файл в окно)">
-    +<input type="file" id="fileInput" accept=".csv">
-  </label>
+  <div class="brand"><span class="logo">📊</span><b>ЛОГ</b><span class="file-info" id="fileInfo">файл не загружен</span></div>
+  <label class="btn-add" title="Открыть CSV (или перетащите файл в окно)">+<input type="file" id="fileInput" accept=".csv"></label>
   <div class="sep"></div>
   <button class="btn" id="zoomIn" title="Приблизить">🔍+</button>
   <button class="btn" id="zoomOut" title="Отдалить">🔍−</button>
   <button class="btn" id="resetZoom" title="Сброс">Сброс</button>
   <div class="sep"></div>
-  <div class="slider-group">
-    <label>Окно</label>
-    <input type="range" id="windowSize" min="5" max="300" value="30" step="5">
-    <span class="readout" id="windowSizeDisplay">30с</span>
-  </div>
-  <div class="slider-group">
-    <label title="Также работает Shift + колесо мыши">Позиция</label>
-    <input type="range" id="timePosition" min="0" max="100" value="0" step="0.1">
-    <span class="readout" id="timePositionDisplay">0–30s</span>
-  </div>
-  <label class="chk" title="Минимум/максимум оси Y по всему логу, а не по видимому окну">
-    <input type="checkbox" id="fixedScale">Фикс. масштаб
-  </label>
-
+  <div class="slider-group"><label>Окно</label><input type="range" id="windowSize" min="5" max="300" value="30" step="5"><span class="readout" id="windowSizeDisplay">30с</span></div>
+  <div class="slider-group"><label title="Также работает Shift + колесо мыши">Позиция</label><input type="range" id="timePosition" min="0" max="100" value="0" step="0.1"><span class="readout" id="timePositionDisplay">0–30s</span></div>
+  <label class="chk" title="Минимум/максимум оси Y по всему логу, а не по видимому окну"><input type="checkbox" id="fixedScale">Фикс. масштаб</label>
   <div class="help">
     <button class="help-btn" tabindex="0" aria-label="Справка">?</button>
-    <div class="help-panel">
-      <div class="help-panel-body">
-        <h4>Управление</h4>
-        <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
-        Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
-        Наведите курсор на график — увидите точное значение в этой точке.<br>
-        Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка (сохраняется).</p>
-
-        <h4>Анализатор опасных событий</h4>
-        <ul>
-          <li><b>Откат УОЗ</b> (красный): минусовой УОЗ при оборотах &gt; 1000, <b>нажатой педали</b> (ДПДЗ ≥ 15%) и неповороте оборотов — детонация под нагрузкой. ДПДЗ &lt; 15% = педаль отпущена (штатный режим) — не помечается. Если есть «нагрузка на двигатель», требуется ≥ 25%. ДПДЗ ≥ 84% помечается как «тапка в пол».</li>
-          <li><b>Хлопание дросселя</b> (оранжевый): скачки ДПДЗ ~50–80% при оборотах &gt; 1000 без их падения.</li>
-          <li><b>Аномалии турбины</b> (голубой): недодув при тапке в пол (ДПДЗ ≥ 84%, об/мин &gt; 2000, наддув &lt; 0.3 bar), резкий сброс наддува (&gt; 0.5 bar при нажатом газе) и скачок наддува (риск передува).</li>
-          <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход к моменту.</li>
-        </ul>
-
-        <h4>Данные и настройки</h4>
-        <ul>
-          <li>Неизвестные параметры (например, расход топлива) рисуются автоматически <b>внизу</b>.</li>
-          <li>Если параметра нет в логе — его график не появляется.</li>
-          <li>Порядок графиков, окно и «Фикс. масштаб» сохраняются в cookies.</li>
-        </ul>
-
-        <h4>Экспорт из CarScanner Pro</h4>
-        <p>Логгер → записать → <b>Экспорт / Поделиться</b> → CSV, <b>вертикальный формат</b>.
-        Строка: время; имя; значение; единица — через <b>;</b></p>
-        <code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code>
-
-        <h4>Как уменьшить Δt (интервал опроса)</h4>
-        <ul>
-          <li>Включите оптимизацию опроса в настройках CarScanner (пакетный режим).</li>
-          <li>Используйте быстрый адаптер — например <b>vLinker</b> (дешёвые ELM327 сильно медленнее).</li>
-          <li>Уменьшите число параметров на панели приборов.</li>
-          <li>Отключите постоянное считывание расхода топлива.</li>
-        </ul>
-
-        <h4>О проекте</h4>
-        <p>GitHub: <a href="https://github.com/fanrok/car-scanner-graf" target="_blank" rel="noopener">fanrok/car-scanner-graf</a><br>
-        Автор: <b>larin992</b> · <a href="mailto:larin992@gmail.com">larin992@gmail.com</a><br>
-        Разработано при поддержке Qwen (Alibaba Group).<br>
-        Лицензия MIT — делайте что угодно, сохраняя упоминание автора.</p>
-      </div>
-    </div>
+    <div class="help-panel"><div class="help-panel-body">
+      <h4>Управление</h4>
+      <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
+      Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
+      Наведите курсор на график — увидите точное значение.<br>
+      Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка (сохраняется).</p>
+      <h4>Анализатор опасных событий</h4>
+      <ul>
+        <li><b>Откат УОЗ</b> (красный): минусовой УОЗ при оборотах &gt; 1000, нажатой педали (ДПДЗ ≥ 15%) и неповороте оборотов. Поддерживается <b>УОЗ по цилиндрам</b> — каждый анализируется отдельно. Если рядом зафиксирована детонация — жёлтое кольцо + метка «⚡детонация».</li>
+        <li><b>Детонация</b> (пульсирующий красный): сигнал «Knock detected» = 1 из ЭБУ — прямое подтверждение детонации.</li>
+        <li><b>Хлопание дросселя</b> (оранжевый): скачки ДПДЗ ~50–80% при оборотах &gt; 1000 без их падения.</li>
+        <li><b>Аномалии турбины</b> (голубой): недодув при тапке в пол, резкий сброс / скачок наддува.</li>
+        <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход к моменту.</li>
+      </ul>
+      <h4>Распознавание параметров</h4>
+      <p>Параметры определяются <b>по ключевым словам</b>, а не по точному имени — работает с разными авто и прошивками. Префиксы вроде <code style="display:inline;padding:1px 4px;margin:0">[ECM]</code> игнорируются. Неизвестные параметры рисуются внизу.</p>
+      <h4>Данные и настройки</h4>
+      <ul>
+        <li>Если параметра нет в логе — его график не появляется.</li>
+        <li>Порядок графиков, окно и «Фикс. масштаб» сохраняются в cookies.</li>
+      </ul>
+      <h4>Экспорт из CarScanner Pro</h4>
+      <p>Логгер → записать → <b>Экспорт / Поделиться</b> → CSV, <b>вертикальный формат</b>.</p>
+      <code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code>
+      <h4>Как уменьшить Δt</h4>
+      <ul>
+        <li>Оптимизация опроса в настройках CarScanner (пакетный режим).</li>
+        <li>Быстрый адаптер — <b>vLinker</b> (дешёвые ELM327 медленнее).</li>
+        <li>Меньше параметров на панели приборов.</li>
+        <li>Отключить постоянное считывание расхода топлива.</li>
+      </ul>
+      <h4>О проекте</h4>
+      <p>GitHub: <a href="https://github.com/fanrok/car-scanner-graf" target="_blank" rel="noopener">fanrok/car-scanner-graf</a><br>
+      Автор: <b>larin992</b> · <a href="mailto:larin992@gmail.com">larin992@gmail.com</a><br>
+      Разработано при поддержке Qwen (Alibaba Group). Лицензия MIT.</p>
+    </div></div>
   </div>
 </div>
 
@@ -343,24 +284,10 @@
   <div class="big">📂</div>
   <b>Загрузите CSV-лог</b>
   Нажмите «+» или просто перетащите файл в окно
-
   <div class="empty-hints">
-    <div class="hint-card">
-      <div class="hint-title">Навигация</div>
-      <kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка графика по времени влево / вправо.
-      Обычное колесо — прокрутка страницы вниз.
-    </div>
-    <div class="hint-card">
-      <div class="hint-title">Перестановка и сохранение</div>
-      Зажмите <kbd>ЛКМ</kbd> на графике и тяните вверх / вниз, чтобы изменить порядок.
-      Порядок, окно и масштаб сохраняются в cookies автоматически.
-    </div>
-    <div class="hint-card">
-      <div class="hint-title">Как выгрузить лог из CarScanner Pro</div>
-      Логгер → записать → <b>Экспорт / Поделиться</b> → CSV в <b>вертикальном виде</b>.
-      Строки формата «время; имя; значение; единица» через точку с запятой:
-      <code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code>
-    </div>
+    <div class="hint-card"><div class="hint-title">Навигация</div><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка по времени. Обычное колесо — прокрутка страницы.</div>
+    <div class="hint-card"><div class="hint-title">Перестановка и сохранение</div>Зажмите <kbd>ЛКМ</kbd> на графике и тяните вверх / вниз. Порядок сохраняется в cookies.</div>
+    <div class="hint-card"><div class="hint-title">Экспорт из CarScanner Pro</div>Логгер → записать → Экспорт → CSV, вертикальный формат:<code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code></div>
   </div>
 </div>
 
@@ -368,105 +295,71 @@
 const MONO = 'ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace';
 const SANS = '"Segoe UI", system-ui, sans-serif';
 
-const PARAMS = [
-  { name: 'Обороты двигателя', unit: 'rpm', color: '#FFC107', minVal: 0 },
-  { name: 'Угол опережения зажигания', unit: '°', color: '#AB47BC', zeroLine: true, negColor: '#FF5252', retardChart: true },
-  { name: 'Кратковременная коррекция - Блок 1', unit: '%', color: '#26A69A', anomaly: [-15, 15], anomalyColor: '#FF5252' },
-  { name: 'Давление во впускном коллекторе (абсолютное)', unit: 'kPa', color: '#FF7043', minVal: 0 },
-  { name: 'Расчетное значение нагрузки на двигатель', unit: '%', color: '#BA68C8', minVal: 0 },
-  { name: 'Температура всасываемого воздуха', unit: '℃', color: '#EC407A', alertLine: 45 },
-  { name: 'Положение дроссельной заслонки', unit: '%', color: '#66BB6A', minVal: 0, maxVal: 100, flapChart: true },
-  { name: 'Скорость автомобиля', unit: 'km/h', color: '#42A5F5', minVal: 0 },
-  { name: 'Массовый расход воздуха', unit: 'g/s', color: '#26C6DA', minVal: 0 },
-  { name: 'Соотношение топливо/воздух', unit: '', color: '#FFA726' },
-  { name: 'Соотношение топливо/воздух (AFR)', unit: '', color: '#FFA726' },
-  { name: 'Температура охлаждающей жидкости', unit: '℃', color: '#EF5350' },
-  { name: 'Расчетный наддув', unit: 'bar', color: '#FF8A65', turboChart: true },
-  { name: 'Ускорение', unit: 'g', color: '#7E57C2' }
+// ===== РОЛИ ПАРАМЕТРОВ (fuzzy matching по ключевым словам) =====
+const ROLES = [
+  { id:'rpm', match: n => /обороты\s+двигателя/i.test(n) && !/x1000/i.test(n), unit:'rpm', color:'#FFC107', minVal:0 },
+  { id:'uoz', match: n => /опережени|уоз|ignition\s*(timing|angle)|угол.*зжиган/i.test(n), unit:'°', color:'#AB47BC', zeroLine:true, negColor:'#FF5252', retardChart:true, multi:true },
+  { id:'knockDetected', match: n => /knock\s+detected/i.test(n), unit:'', color:'#FF1744', minVal:0, maxVal:1, knockChart:true },
+  { id:'knockActive', match: n => /knock\s+control\s+active/i.test(n) && !/adaptation/i.test(n), unit:'', color:'#FF6E40', minVal:0, maxVal:1 },
+  { id:'knockAdapt', match: n => /knock.*(adaptation|адаптац)/i.test(n), unit:'', color:'#FFB74D', minVal:0, maxVal:1 },
+  { id:'correction', match: n => /кратковременная\s+коррекция/i.test(n), unit:'%', color:'#26A69A', anomaly:[-15,15], anomalyColor:'#FF5252' },
+  { id:'manifold', match: n => /впускном\s+коллекторе/i.test(n), unit:'kPa', color:'#FF7043', minVal:0 },
+  { id:'load', match: n => /нагрузк/i.test(n) && /двигател/i.test(n), unit:'%', color:'#BA68C8', minVal:0 },
+  { id:'intakeTemp', match: n => /всасываемого\s+воздуха/i.test(n), unit:'℃', color:'#EC407A', alertLine:45 },
+  { id:'throttle', match: n => /дроссел/i.test(n) || /throttle\s*position/i.test(n), unit:'%', color:'#66BB6A', minVal:0, maxVal:100, flapChart:true },
+  { id:'speed', match: n => /скорость\s+автомобиля/i.test(n), unit:'km/h', color:'#42A5F5', minVal:0 },
+  { id:'maf', match: n => /расход\s+воздуха/i.test(n) && !/топлив/i.test(n), unit:'g/s', color:'#26C6DA', minVal:0 },
+  { id:'afr', match: n => /топливо\s*\/?\s*воздух/i.test(n) || /\bAFR\b/i.test(n), unit:'', color:'#FFA726' },
+  { id:'coolant', match: n => /охлаждающей\s+жидкости/i.test(n), unit:'℃', color:'#EF5350' },
+  { id:'boost', match: n => /наддув/i.test(n) || /boost/i.test(n), unit:'bar', color:'#FF8A65', turboChart:true },
+  { id:'accel', match: n => /ускорение/i.test(n) || /acceleration/i.test(n), unit:'g', color:'#7E57C2' },
 ];
 
+const MULTI_PALETTE = ['#AB47BC','#7E57C2','#5C6BC0','#42A5F5','#26C6DA','#26A69A','#9CCC65','#FFCA28','#FFA726','#FF7043','#EF5350','#EC407A'];
 const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC','#F6AEA9','#A8DAB5','#FFB77D','#D7A9E3','#AECBFA','#FDE293'];
 
 // ===== Пороги анализатора =====
-const MIN_RPM = 1000;          // ниже — холостой ход, анализ не проводим
-const TPS_RELEASED = 15;       // ДПДЗ < 15% = педаль отпущена — не опасно
-const TPS_WOT = 84;            // ДПДЗ >= 84% = тапка в пол
-const LOAD_MIN = 25;           // мин. нагрузка (%), при которой возможна детонация
-const RPM_DROP_EPS = 15;       // падение оборотов больше этого = "падают" (норма)
-const FLAP_ZONE = [45, 85];    // зона ДПДЗ, в которой ищем хлопки
-const FLAP_AMP = 8;            // минимальное плечо зигзага ДПДЗ, %
-const FLAP_RPM_DROP = 30;      // если обороты упали больше — это не хлопание
-const TURBO_UNDERBOOST = 0.3;  // наддув ниже этого при WOT = недодув, bar
-const TURBO_WOT_RPM = 2000;    // мин. обороты для проверки недодува
-const TURBO_DELTA = 0.5;       // резкое изменение наддува за замер, bar
-const TURBO_DROP_TPS = 50;     // мин. ДПДЗ для учёта сброса наддува
-const MERGE_RETARD = 2;        // склейка соседних откатов, сек
-const MERGE_FLAP = 2;          // склейка соседних хлопков, сек
-const MERGE_TURBO = 3;         // склейка соседних аномалий турбины, сек
-
+const MIN_RPM = 1000, TPS_RELEASED = 15, TPS_WOT = 84, LOAD_MIN = 25, RPM_DROP_EPS = 15;
+const FLAP_ZONE = [45, 85], FLAP_AMP = 8, FLAP_RPM_DROP = 30;
+const TURBO_UNDERBOOST = 0.3, TURBO_WOT_RPM = 2000, TURBO_DELTA = 0.5, TURBO_DROP_TPS = 50;
+const MERGE_RETARD = 2, MERGE_FLAP = 2, MERGE_TURBO = 3, MERGE_KNOCK = 2;
 const CHART_H = 176;
-let allData = {}, extraNames = [], extraMeta = {}, chartOrder = [];
+
+let allData = {}, paramConfigs = {}, roleParams = {}, chartOrder = [];
 let totalTime = 0, windowSize = 30, timePosition = 0;
 let canvasElements = [], mouseX = -1, rafPending = false, dragState = null;
-let dangerRetards = [], throttleFlaps = [], turboEvents = [];
+let dangerRetards = [], throttleFlaps = [], turboEvents = [], knockEvents = [];
 let pendingFlash = null;
 const dpr = window.devicePixelRatio || 1;
 
-// ===== НАСТРОЙКИ (cookies + localStorage) =====
-function setCookie(name, value, days) {
-  const d = new Date(); d.setTime(d.getTime() + (days || 365) * 864e5);
-  document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
-}
-function getCookie(name) {
-  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-  return m ? decodeURIComponent(m[1]) : null;
-}
-function saveSetting(k, v) {
-  try { localStorage.setItem('logview_' + k, v); } catch (e) {}
-  try { setCookie('logview_' + k, v); } catch (e) {}
-}
-function loadSetting(k) {
-  const c = getCookie('logview_' + k);
-  if (c !== null && c !== '') return c;
-  try { return localStorage.getItem('logview_' + k); } catch (e) { return null; }
-}
+// ===== НАСТРОЙКИ =====
+function setCookie(n, v, d) { const e = new Date(); e.setTime(e.getTime() + (d||365)*864e5); document.cookie = n+'='+encodeURIComponent(v)+';expires='+e.toUTCString()+';path=/;SameSite=Lax'; }
+function getCookie(n) { const m = document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)')); return m ? decodeURIComponent(m[1]) : null; }
+function saveSetting(k, v) { try { localStorage.setItem('logview_'+k, v); } catch(e){} try { setCookie('logview_'+k, v); } catch(e){} }
+function loadSetting(k) { const c = getCookie('logview_'+k); if (c !== null && c !== '') return c; try { return localStorage.getItem('logview_'+k); } catch(e) { return null; } }
 function saveOrder() {
   const domOrder = Array.from(document.querySelectorAll('#charts .chart-box')).map(b => b.dataset.name);
-  const available = PARAMS.map(p => p.name).concat(extraNames);
-  available.forEach(n => { if (domOrder.indexOf(n) === -1) domOrder.push(n); });
+  chartOrder.forEach(n => { if (domOrder.indexOf(n) === -1) domOrder.push(n); });
   chartOrder = domOrder;
   saveSetting('chartOrder', JSON.stringify(domOrder));
 }
-function buildChartOrder() {
-  const available = PARAMS.map(p => p.name).concat(extraNames);
+function applySavedOrder(available) {
   let saved = null;
-  try { saved = JSON.parse(loadSetting('chartOrder') || 'null'); } catch (e) {}
+  try { saved = JSON.parse(loadSetting('chartOrder') || 'null'); } catch(e) {}
   const order = [];
-  if (Array.isArray(saved)) {
-    saved.forEach(n => { if (available.indexOf(n) !== -1 && order.indexOf(n) === -1) order.push(n); });
-  }
+  if (Array.isArray(saved)) saved.forEach(n => { if (available.indexOf(n) !== -1 && order.indexOf(n) === -1) order.push(n); });
   available.forEach(n => { if (order.indexOf(n) === -1) order.push(n); });
   return order;
 }
 
-// ===== ЗАГРУЗКА ФАЙЛА =====
-function loadFile(file) {
-  const reader = new FileReader();
-  reader.onload = ev => parseAndDraw(ev.target.result, file.name);
-  reader.readAsText(file);
-}
-document.getElementById('fileInput').addEventListener('change', e => {
-  if (e.target.files[0]) loadFile(e.target.files[0]);
-});
-
+// ===== ЗАГРУЗКА =====
+function loadFile(file) { const r = new FileReader(); r.onload = ev => parseAndDraw(ev.target.result, file.name); r.readAsText(file); }
+document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
 let dragDepth = 0;
 document.addEventListener('dragenter', e => { e.preventDefault(); if (++dragDepth === 1) document.body.classList.add('drop-active'); });
 document.addEventListener('dragleave', e => { e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('drop-active'); } });
 document.addEventListener('dragover', e => e.preventDefault());
-document.addEventListener('drop', e => {
-  e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-active');
-  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
-});
+document.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-active'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
 
 // ===== УПРАВЛЕНИЕ =====
 const wsSlider = document.getElementById('windowSize');
@@ -474,19 +367,13 @@ document.getElementById('zoomIn').addEventListener('click', () => { windowSize =
 document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.round(Math.min(parseFloat(wsSlider.max), windowSize * 1.4)); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
 document.getElementById('resetZoom').addEventListener('click', () => { windowSize = 30; timePosition = 0; updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
 wsSlider.addEventListener('input', e => { windowSize = parseFloat(e.target.value); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
-document.getElementById('timePosition').addEventListener('input', e => {
-  timePosition = parseFloat(e.target.value) / 100 * Math.max(0, totalTime - windowSize);
-  updateControls(); scheduleRedraw();
-});
+document.getElementById('timePosition').addEventListener('input', e => { timePosition = parseFloat(e.target.value) / 100 * Math.max(0, totalTime - windowSize); updateControls(); scheduleRedraw(); });
 document.getElementById('fixedScale').addEventListener('change', e => { saveSetting('fixedScale', e.target.checked ? '1' : '0'); scheduleRedraw(); });
-
 document.getElementById('eventsHead').addEventListener('click', () => {
-  const panel = document.getElementById('eventsPanel');
-  panel.classList.toggle('open');
-  document.getElementById('eventsToggleHint').textContent =
-    panel.classList.contains('open') ? 'клик — свернуть' : 'клик — развернуть';
+  const p = document.getElementById('eventsPanel');
+  p.classList.toggle('open');
+  document.getElementById('eventsToggleHint').textContent = p.classList.contains('open') ? 'клик — свернуть' : 'клик — развернуть';
 });
-
 window.addEventListener('wheel', e => {
   if (!e.shiftKey || totalTime <= 0) return;
   e.preventDefault();
@@ -494,40 +381,70 @@ window.addEventListener('wheel', e => {
   const norm = raw * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 120 : 1);
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(maxPos, timePosition + norm * windowSize / 600));
-  updateControls();
-  scheduleRedraw();
+  updateControls(); scheduleRedraw();
 }, { passive: false });
-
 let resizeTimer;
-window.addEventListener('resize', () => {
-  if (!totalTime) return;
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(redrawCharts, 120);
-});
-
-function scheduleRedraw() {
-  if (rafPending) return;
-  rafPending = true;
-  requestAnimationFrame(() => { rafPending = false; redrawCharts(); });
-}
-
+window.addEventListener('resize', () => { if (!totalTime) return; clearTimeout(resizeTimer); resizeTimer = setTimeout(redrawCharts, 120); });
+function scheduleRedraw() { if (rafPending) return; rafPending = true; requestAnimationFrame(() => { rafPending = false; redrawCharts(); }); }
 function updateControls() {
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(timePosition, maxPos));
   wsSlider.value = windowSize;
   document.getElementById('windowSizeDisplay').textContent = formatWin(windowSize);
   document.getElementById('timePosition').value = maxPos ? (timePosition / maxPos) * 100 : 0;
-  document.getElementById('timePositionDisplay').textContent =
-    timePosition.toFixed(0) + '–' + (timePosition + windowSize).toFixed(0) + 's';
+  document.getElementById('timePositionDisplay').textContent = timePosition.toFixed(0) + '–' + (timePosition + windowSize).toFixed(0) + 's';
 }
 
-// ===== ПАРСЕР =====
+// ===== ПАРСЕР + КЛАССИФИКАЦИЯ =====
+function makeShortName(name, roleId) {
+  if (roleId === 'uoz') {
+    const m = name.match(/цилиндр\s*[:.]?\s*(\d+)/i) || name.match(/cyl(?:inder)?\s*[:.]?\s*(\d+)/i) || name.match(/(\d+)\s*$/);
+    return m ? 'УОЗ цил.' + m[1] : 'УОЗ';
+  }
+  if (roleId === 'knockDetected') return 'Детонация';
+  if (roleId === 'knockActive') return 'Knock control';
+  if (roleId === 'knockAdapt') return 'Knock adapt';
+  return name;
+}
+
+function classifyParams(rawData, rawUnits) {
+  allData = rawData;
+  paramConfigs = {};
+  roleParams = {};
+  ROLES.forEach(r => roleParams[r.id] = []);
+  const names = Object.keys(rawData);
+  const classified = new Set();
+  ROLES.forEach(role => {
+    const matches = names.filter(n => role.match(n) && !classified.has(n));
+    matches.sort();
+    matches.forEach((n, idx) => {
+      classified.add(n);
+      roleParams[role.id].push(n);
+      paramConfigs[n] = {
+        name: n, shortName: makeShortName(n, role.id),
+        unit: role.unit !== undefined ? role.unit : (rawUnits[n] || ''),
+        color: role.multi ? MULTI_PALETTE[idx % MULTI_PALETTE.length] : role.color,
+        role: role.id, minVal: role.minVal, maxVal: role.maxVal,
+        anomaly: role.anomaly, anomalyColor: role.anomalyColor, alertLine: role.alertLine,
+        zeroLine: role.zeroLine, negColor: role.negColor,
+        retardChart: role.retardChart, flapChart: role.flapChart,
+        turboChart: role.turboChart, knockChart: role.knockChart,
+      };
+    });
+  });
+  const extras = names.filter(n => !classified.has(n));
+  extras.forEach((n, idx) => {
+    paramConfigs[n] = { name: n, shortName: n, unit: rawUnits[n] || '', color: EXTRA_COLORS[idx % EXTRA_COLORS.length], role: 'extra' };
+  });
+  const defaultOrder = [];
+  ROLES.forEach(role => roleParams[role.id].forEach(n => defaultOrder.push(n)));
+  extras.forEach(n => defaultOrder.push(n));
+  chartOrder = applySavedOrder(defaultOrder);
+}
+
 function parseAndDraw(text, fileName) {
-  allData = {}; extraNames = []; extraMeta = {};
-  PARAMS.forEach(p => allData[p.name] = []);
-
+  const rawData = {}, rawUnits = {};
   const tokens = text.replace(/^\uFEFF/, '').split(/[;\r\n]+/).map(t => t.replace(/"/g, '').trim());
-
   let i = 0, count = 0;
   while (i + 3 < tokens.length) {
     const ts = parseFloat(tokens[i].replace(',', '.'));
@@ -535,177 +452,161 @@ function parseAndDraw(text, fileName) {
     if (!isNaN(ts) && name) {
       const val = parseFloat(tokens[i + 2].replace(',', '.'));
       if (!isNaN(val)) {
-        if (!allData.hasOwnProperty(name)) {
-          extraMeta[name] = {
-            name: name,
-            unit: tokens[i + 3] || '',
-            color: EXTRA_COLORS[extraNames.length % EXTRA_COLORS.length]
-          };
-          extraNames.push(name);
-          allData[name] = [];
-        }
-        allData[name].push({ x: ts, y: val });
-        count++;
-        i += 4;
-        continue;
+        if (!rawData.hasOwnProperty(name)) { rawData[name] = []; rawUnits[name] = tokens[i + 3] || ''; }
+        rawData[name].push({ x: ts, y: val });
+        count++; i += 4; continue;
       }
     }
     i++;
   }
-
-  if (!count) {
-    document.getElementById('fileInfo').textContent = '⚠ параметры не найдены';
-    return;
-  }
-
+  if (!count) { document.getElementById('fileInfo').textContent = '⚠ параметры не найдены'; return; }
+  classifyParams(rawData, rawUnits);
   let minT = Infinity, maxT = 0;
   for (const key in allData) {
-    const arr = allData[key];
-    arr.sort((a, b) => a.x - b.x);
-    for (let j = 0; j < arr.length; j++) {
-      if (arr[j].x < minT) minT = arr[j].x;
-      if (arr[j].x > maxT) maxT = arr[j].x;
-    }
+    const arr = allData[key]; arr.sort((a, b) => a.x - b.x);
+    for (let j = 0; j < arr.length; j++) { if (arr[j].x < minT) minT = arr[j].x; if (arr[j].x > maxT) maxT = arr[j].x; }
   }
-  for (const key in allData) {
-    const arr = allData[key];
-    for (let j = 0; j < arr.length; j++) arr[j].x -= minT;
-  }
+  for (const key in allData) { const arr = allData[key]; for (let j = 0; j < arr.length; j++) arr[j].x -= minT; }
   totalTime = maxT - minT;
-
   wsSlider.max = Math.max(300, Math.ceil(totalTime));
-  chartOrder = buildChartOrder();
-
   document.getElementById('empty').style.display = 'none';
   const totalParams = Object.keys(allData).filter(k => allData[k].length).length;
-  document.getElementById('fileInfo').textContent =
-    fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек · ' + totalParams + ' параметров';
-
-  timePosition = 0;
-  updateControls();
-  runAnalysis();
-  redrawCharts();
+  document.getElementById('fileInfo').textContent = fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек · ' + totalParams + ' параметров';
+  timePosition = 0; updateControls(); runAnalysis(); redrawCharts();
 }
 
-// ===== АНАЛИЗАТОР ОПАСНЫХ СОБЫТИЙ =====
+// ===== АНАЛИЗАТОР =====
+function getRoleData(roleId) { const n = roleParams[roleId]; return n && n.length ? allData[n[0]] : null; }
+function getRoleNames(roleId) { return roleParams[roleId] || []; }
+
 function runAnalysis() {
-  dangerRetards = [];
-  throttleFlaps = [];
-  turboEvents = [];
-
-  const uoz = allData['Угол опережения зажигания'];
-  const rpm = allData['Обороты двигателя'];
-  const tps = allData['Положение дроссельной заслонки'];
-  const load = allData['Расчетное значение нагрузки на двигатель'];
-  const boost = allData['Расчетный наддув'];
-
-  const hasTps = tps && tps.length >= 2;
-  const hasLoad = load && load.length >= 2;
-
-  // --- Откаты УОЗ ---
-  if (uoz && uoz.length >= 2 && rpm && rpm.length >= 2) {
-    let j = 0;
-    for (let k = 0; k < uoz.length; k++) {
-      const p = uoz[k];
-      if (p.y >= 0) continue;
-      const rpmAt = getValueAtTime(rpm, p.x);
-      if (rpmAt === null || rpmAt <= MIN_RPM) continue;          // холостой ход
-      const tpsAt = hasTps ? getValueAtTime(tps, p.x) : null;
-      if (tpsAt !== null && tpsAt < TPS_RELEASED) continue;      // педаль отпущена
-      if (hasLoad) {
-        const loadAt = getValueAtTime(load, p.x);
-        if (loadAt !== null && loadAt < LOAD_MIN) continue;      // лёгкая нагрузка
-      }
-      while (j < rpm.length && rpm[j].x <= p.x) j++;
-      const a = rpm[j], b = rpm[j + 1];
-      if (!a || !b) continue;
-      if (b.y < a.y - RPM_DROP_EPS) continue;                    // обороты падают — норма
-      dangerRetards.push({
-        x: p.x, y: p.y, rpm: Math.round(rpmAt),
-        tps: tpsAt !== null ? Math.round(tpsAt) : null,
-        load: hasLoad ? (() => { const l = getValueAtTime(load, p.x); return l !== null ? Math.round(l) : null; })() : null,
-        wot: tpsAt !== null && tpsAt >= TPS_WOT
-      });
-    }
+  dangerRetards = []; throttleFlaps = []; turboEvents = []; knockEvents = [];
+  const rpm = getRoleData('rpm'), knock = getRoleData('knockDetected');
+  const speed = getRoleData('speed'), tps = getRoleData('throttle');
+  const load = getRoleData('load'), boost = getRoleData('boost');
+  if (rpm && rpm.length >= 2) {
+    getRoleNames('uoz').forEach(uozName => {
+      dangerRetards = dangerRetards.concat(detectRetards(uozName, rpm, tps, load, knock));
+    });
+    dangerRetards.sort((a, b) => a.x - b.x);
     dangerRetards = dedup(dangerRetards, MERGE_RETARD);
   }
-
-  // --- Хлопание дросселя ---
-  if (hasTps && rpm && rpm.length >= 2) {
-    for (let k = 1; k < tps.length - 1; k++) {
-      const a = tps[k - 1], b = tps[k], c = tps[k + 1];
-      if (b.y < FLAP_ZONE[0] || b.y > FLAP_ZONE[1]) continue;
-      const d1 = b.y - a.y, d2 = c.y - b.y;
-      const zigzag = (d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0);
-      if (!zigzag || Math.abs(d1) < FLAP_AMP || Math.abs(d2) < FLAP_AMP) continue;
-      const r0 = getValueAtTime(rpm, a.x);
-      const r1 = getValueAtTime(rpm, c.x);
-      if (r0 === null || r1 === null) continue;
-      if (Math.min(r0, r1) <= MIN_RPM) continue;                 // холостой ход
-      if (r1 >= r0 - FLAP_RPM_DROP) throttleFlaps.push({ x: b.x, y: b.y });
-    }
-    throttleFlaps = dedup(throttleFlaps, MERGE_FLAP);
-  }
-
-  // --- Аномалии турбины ---
-  if (boost && boost.length >= 2 && hasTps && rpm && rpm.length >= 2) {
-    for (let k = 1; k < boost.length; k++) {
-      const p0 = boost[k - 1], p1 = boost[k];
-      const t1 = getValueAtTime(tps, p1.x);
-      const r1 = getValueAtTime(rpm, p1.x);
-      if (t1 === null || r1 === null) continue;
-      const delta = p1.y - p0.y;
-      let kind = null;
-      if (t1 >= TPS_WOT && r1 > TURBO_WOT_RPM && p1.y < TURBO_UNDERBOOST) kind = 'underboost';
-      else if (delta < -TURBO_DELTA && t1 > TURBO_DROP_TPS) kind = 'drop';
-      else if (delta > TURBO_DELTA) kind = 'spike';
-      if (kind) turboEvents.push({ x: p1.x, y: p1.y, kind: kind });
-    }
-    turboEvents = dedup(turboEvents, MERGE_TURBO);
-  }
-
+  if (tps && tps.length >= 3 && rpm && rpm.length >= 2) throttleFlaps = detectFlaps(getRoleNames('throttle')[0], tps, rpm);
+  if (boost && boost.length >= 2 && tps && rpm && rpm.length >= 2) turboEvents = detectTurbo(getRoleNames('boost')[0], boost, tps, rpm);
+  if (knock && knock.length >= 1) knockEvents = detectKnock(getRoleNames('knockDetected')[0], knock, rpm, speed);
   renderEventsPanel();
+}
+
+function detectRetards(uozName, rpm, tps, load, knock) {
+  const uoz = allData[uozName], label = paramConfigs[uozName].shortName, out = [];
+  let j = 0;
+  for (let k = 0; k < uoz.length; k++) {
+    const p = uoz[k];
+    if (p.y >= 0) continue;
+    const rpmAt = getValueAtTime(rpm, p.x);
+    if (rpmAt === null || rpmAt <= MIN_RPM) continue;
+    const tpsAt = tps ? getValueAtTime(tps, p.x) : null;
+    if (tpsAt !== null && tpsAt < TPS_RELEASED) continue;
+    if (load) { const l = getValueAtTime(load, p.x); if (l !== null && l < LOAD_MIN) continue; }
+    while (j < rpm.length && rpm[j].x <= p.x) j++;
+    const a = rpm[j], b = rpm[j + 1];
+    if (!a || !b) continue;
+    if (b.y < a.y - RPM_DROP_EPS) continue;
+    const knockAt = knock ? getValueAtTime(knock, p.x) : null;
+    out.push({
+      x: p.x, y: p.y, rpm: Math.round(rpmAt),
+      tps: tpsAt !== null ? Math.round(tpsAt) : null,
+      load: load ? (() => { const l = getValueAtTime(load, p.x); return l !== null ? Math.round(l) : null; })() : null,
+      wot: tpsAt !== null && tpsAt >= TPS_WOT,
+      knockConfirmed: knockAt !== null && knockAt >= 0.5,
+      label: label, target: uozName
+    });
+  }
+  return out;
+}
+
+function detectFlaps(tpsName, tps, rpm) {
+  const out = [];
+  for (let k = 1; k < tps.length - 1; k++) {
+    const a = tps[k-1], b = tps[k], c = tps[k+1];
+    if (b.y < FLAP_ZONE[0] || b.y > FLAP_ZONE[1]) continue;
+    const d1 = b.y - a.y, d2 = c.y - b.y;
+    if (!((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0))) continue;
+    if (Math.abs(d1) < FLAP_AMP || Math.abs(d2) < FLAP_AMP) continue;
+    const r0 = getValueAtTime(rpm, a.x), r1 = getValueAtTime(rpm, c.x);
+    if (r0 === null || r1 === null || Math.min(r0, r1) <= MIN_RPM) continue;
+    if (r1 >= r0 - FLAP_RPM_DROP) out.push({ x: b.x, y: b.y, target: tpsName });
+  }
+  return dedup(out, MERGE_FLAP);
+}
+
+function detectTurbo(boostName, boost, tps, rpm) {
+  const out = [];
+  for (let k = 1; k < boost.length; k++) {
+    const p0 = boost[k-1], p1 = boost[k];
+    const t1 = getValueAtTime(tps, p1.x), r1 = getValueAtTime(rpm, p1.x);
+    if (t1 === null || r1 === null) continue;
+    const delta = p1.y - p0.y;
+    let kind = null;
+    if (t1 >= TPS_WOT && r1 > TURBO_WOT_RPM && p1.y < TURBO_UNDERBOOST) kind = 'underboost';
+    else if (delta < -TURBO_DELTA && t1 > TURBO_DROP_TPS) kind = 'drop';
+    else if (delta > TURBO_DELTA) kind = 'spike';
+    if (kind) out.push({ x: p1.x, y: p1.y, kind: kind, target: boostName });
+  }
+  return dedup(out, MERGE_TURBO);
+}
+
+function detectKnock(knockName, knock, rpm, speed) {
+  const out = []; let prev = 0;
+  for (let k = 0; k < knock.length; k++) {
+    const p = knock[k], v = p.y >= 0.5 ? 1 : 0;
+    if (v === 1 && prev === 0) {
+      const rpmAt = rpm ? getValueAtTime(rpm, p.x) : null;
+      const speedAt = speed ? getValueAtTime(speed, p.x) : null;
+      out.push({ x: p.x, y: 1, rpm: rpmAt !== null ? Math.round(rpmAt) : null, speed: speedAt !== null ? Math.round(speedAt) : null, target: knockName });
+    }
+    prev = v;
+  }
+  return dedup(out, MERGE_KNOCK);
 }
 
 function dedup(events, gap) {
   const out = [];
-  events.forEach(e => {
-    const last = out[out.length - 1];
-    if (last && (e.x - last.x) < gap && (!e.kind || e.kind === last.kind)) return;
-    out.push(e);
-  });
+  events.forEach(e => { const last = out[out.length-1]; if (last && (e.x - last.x) < gap && (!e.kind || e.kind === last.kind) && e.target === last.target) return; out.push(e); });
   return out;
 }
 
 const TURBO_LABELS = { underboost: 'недодув', drop: 'сброс наддува', spike: 'скачок наддува' };
 
 function renderEventsPanel() {
-  const panel = document.getElementById('eventsPanel');
-  const list = document.getElementById('eventsList');
+  const panel = document.getElementById('eventsPanel'), list = document.getElementById('eventsList');
   const events = [];
   dangerRetards.forEach(e => {
-    let text = 'откат УОЗ ' + formatValue(e.y) + '° @ ' + e.rpm + ' rpm';
+    let text = 'откат ' + e.label + ' ' + formatValue(e.y) + '° @ ' + e.rpm + ' rpm';
     if (e.tps !== null) text += ' · ДПДЗ ' + e.tps + '%' + (e.wot ? ' (тапка!)' : '');
     if (e.load !== null) text += ' · нагр ' + e.load + '%';
-    events.push({ x: e.x, type: 'retard', target: 'Угол опережения зажигания', text: text });
+    if (e.knockConfirmed) text += ' · ⚡детонация';
+    events.push({ x: e.x, type: 'retard', target: e.target, text: text });
   });
-  throttleFlaps.forEach(e => {
-    events.push({ x: e.x, type: 'flap', target: 'Положение дроссельной заслонки', text: 'хлопание дросселя ' + formatValue(e.y) + '%' });
+  throttleFlaps.forEach(e => events.push({ x: e.x, type: 'flap', target: e.target, text: 'хлопание дросселя ' + formatValue(e.y) + '%' }));
+  turboEvents.forEach(e => events.push({ x: e.x, type: 'turbo', target: e.target, text: TURBO_LABELS[e.kind] + ' ' + formatValue(e.y) + ' bar' }));
+  knockEvents.forEach(e => {
+    let text = '⚡ детонация';
+    if (e.rpm !== null) text += ' @ ' + e.rpm + ' rpm';
+    if (e.speed !== null) text += ' · ' + e.speed + ' km/h';
+    events.push({ x: e.x, type: 'knock', target: e.target, text: text });
   });
-  turboEvents.forEach(e => {
-    events.push({ x: e.x, type: 'turbo', target: 'Расчетный наддув', text: TURBO_LABELS[e.kind] + ' ' + formatValue(e.y) + ' bar' });
-  });
-
   if (!events.length) { panel.style.display = 'none'; return; }
   events.sort((a, b) => a.x - b.x);
-
-  panel.style.display = 'block';
-  panel.classList.remove('open');
+  panel.style.display = 'block'; panel.classList.remove('open');
   document.getElementById('eventsToggleHint').textContent = 'клик — развернуть';
-  document.getElementById('eventsCount').textContent = events.length +
-    '  (откатов: ' + dangerRetards.length + ', хлопков: ' + throttleFlaps.length + ', турбо: ' + turboEvents.length + ')';
+  const parts = [];
+  if (dangerRetards.length) parts.push('откатов: ' + dangerRetards.length);
+  if (knockEvents.length) parts.push('детонация: ' + knockEvents.length);
+  if (throttleFlaps.length) parts.push('хлопков: ' + throttleFlaps.length);
+  if (turboEvents.length) parts.push('турбо: ' + turboEvents.length);
+  document.getElementById('eventsCount').textContent = events.length + (parts.length ? '  (' + parts.join(', ') + ')' : '');
   list.innerHTML = '';
-
   events.forEach(ev => {
     const chip = document.createElement('button');
     chip.className = 'event-chip' + (ev.type !== 'retard' ? ' ' + ev.type : '');
@@ -719,32 +620,23 @@ function jumpToEvent(ev) {
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(maxPos, ev.x - windowSize / 3));
   pendingFlash = ev.target;
-  updateControls();
-  scheduleRedraw();
+  updateControls(); scheduleRedraw();
 }
 
-function getConfig(name) {
-  for (let i = 0; i < PARAMS.length; i++) if (PARAMS[i].name === name) return PARAMS[i];
-  return extraMeta[name] || { name: name, unit: '', color: '#9AA0A6' };
-}
+function getConfig(name) { return paramConfigs[name] || { name: name, shortName: name, unit: '', color: '#9AA0A6', role: 'extra' }; }
 
 // ===== ОТРИСОВКА =====
 function redrawCharts() {
   const keepScrollY = window.scrollY;
-
   const container = document.getElementById('charts');
-  container.innerHTML = '';
-  canvasElements = [];
+  container.innerHTML = ''; canvasElements = [];
   const tStart = timePosition, tEnd = timePosition + windowSize;
   const fixed = document.getElementById('fixedScale').checked;
-
   chartOrder.forEach(name => {
     const pts = allData[name];
     if (!pts || pts.length < 2) return;
     const param = getConfig(name);
-
     const visiblePts = pts.filter(p => p.x >= tStart && p.x <= tEnd);
-
     const extendedPts = [];
     const sv = getValueAtTime(pts, tStart);
     if (sv !== null) extendedPts.push({ x: tStart, y: sv, isBoundary: true });
@@ -752,12 +644,8 @@ function redrawCharts() {
     const ev = getValueAtTime(pts, tEnd);
     if (ev !== null) extendedPts.push({ x: tEnd, y: ev, isBoundary: true });
     if (extendedPts.length < 2) return;
-
     let avgInterval = 0;
-    if (visiblePts.length > 1) {
-      avgInterval = (visiblePts[visiblePts.length - 1].x - visiblePts[0].x) / (visiblePts.length - 1);
-    }
-
+    if (visiblePts.length > 1) avgInterval = (visiblePts[visiblePts.length-1].x - visiblePts[0].x) / (visiblePts.length - 1);
     let yMin, yMax;
     if (fixed) {
       const mm = minMax(pts);
@@ -767,101 +655,48 @@ function redrawCharts() {
       const mm = minMax(visiblePts.length ? visiblePts : extendedPts);
       yMin = mm.min; yMax = mm.max;
     }
-    if (param.anomaly) {
-      yMin = Math.min(yMin, param.anomaly[0]);
-      yMax = Math.max(yMax, param.anomaly[1]);
-    }
-
-    const box = document.createElement('div');
-    box.className = 'chart-box';
-    box.dataset.name = name;
-    const wrapper = document.createElement('div');
-    wrapper.className = 'canvas-wrapper';
-    box.appendChild(wrapper);
-    container.appendChild(box);
-
+    if (param.anomaly) { yMin = Math.min(yMin, param.anomaly[0]); yMax = Math.max(yMax, param.anomaly[1]); }
+    const box = document.createElement('div'); box.className = 'chart-box'; box.dataset.name = name;
+    const wrapper = document.createElement('div'); wrapper.className = 'canvas-wrapper';
+    box.appendChild(wrapper); container.appendChild(box);
     const W = wrapper.clientWidth || 800;
-    const canvas = document.createElement('canvas');
-    canvas.className = 'main-canvas';
-    canvas.width = W * dpr; canvas.height = CHART_H * dpr;
-    canvas.style.height = CHART_H + 'px';
-    const overlay = document.createElement('canvas');
-    overlay.className = 'overlay';
-    overlay.width = W * dpr; overlay.height = CHART_H * dpr;
-    overlay.style.height = CHART_H + 'px';
-    wrapper.appendChild(canvas);
-    wrapper.appendChild(overlay);
-
-    const el = {
-      canvas, overlay, param, pts: extendedPts, total: pts.length,
-      wholeMax: minMax(pts).max,
-      tStart, tEnd, avgInterval, yMin, yMax, fixed
-    };
-    canvasElements.push(el);
-    drawChart(el);
-
-    canvas.addEventListener('mousemove', e => {
-      if (dragState && dragState.dragging) return;
-      const rect = canvas.getBoundingClientRect();
-      mouseX = e.clientX - rect.left;
-      updateOverlay();
-    });
+    const canvas = document.createElement('canvas'); canvas.className = 'main-canvas';
+    canvas.width = W * dpr; canvas.height = CHART_H * dpr; canvas.style.height = CHART_H + 'px';
+    const overlay = document.createElement('canvas'); overlay.className = 'overlay';
+    overlay.width = W * dpr; overlay.height = CHART_H * dpr; overlay.style.height = CHART_H + 'px';
+    wrapper.appendChild(canvas); wrapper.appendChild(overlay);
+    const el = { canvas, overlay, param, pts: extendedPts, total: pts.length, wholeMax: minMax(pts).max, tStart, tEnd, avgInterval, yMin, yMax, fixed };
+    canvasElements.push(el); drawChart(el);
+    canvas.addEventListener('mousemove', e => { if (dragState && dragState.dragging) return; const rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; updateOverlay(); });
     canvas.addEventListener('mouseleave', () => { mouseX = -1; updateOverlay(); });
-
-    box.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
-      dragState = { box: box, startY: e.clientY, dragging: false };
-    });
+    box.addEventListener('mousedown', e => { if (e.button !== 0) return; dragState = { box: box, startY: e.clientY, dragging: false }; });
   });
-
   window.scrollTo(0, keepScrollY);
-
-  // Подсветка графика после перехода к событию (без гонок по времени)
   if (pendingFlash) {
     const box = container.querySelector('.chart-box[data-name="' + pendingFlash + '"]');
-    if (box) {
-      box.classList.add('flash');
-      setTimeout(() => box.classList.remove('flash'), 950);
-      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
+    if (box) { box.classList.add('flash'); setTimeout(() => box.classList.remove('flash'), 950); box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
     pendingFlash = null;
   }
 }
 
-// ===== ПЕРЕТАСКИВАНИЕ =====
 function endDrag(saveIt) {
   if (!dragState) return;
-  if (dragState.dragging) {
-    dragState.box.classList.remove('dragging');
-    document.body.classList.remove('is-dragging');
-    if (saveIt) saveOrder();
-  }
+  if (dragState.dragging) { dragState.box.classList.remove('dragging'); document.body.classList.remove('is-dragging'); if (saveIt) saveOrder(); }
   dragState = null;
 }
 window.addEventListener('mousemove', e => {
   if (!dragState) return;
-  // Кнопка отпущена (например, за пределами окна) — завершаем перенос
   if (dragState.dragging && e.buttons === 0) { endDrag(true); return; }
   if (!dragState.dragging) {
-    if (Math.abs(e.clientY - dragState.startY) > 6) {
-      dragState.dragging = true;
-      dragState.box.classList.add('dragging');
-      document.body.classList.add('is-dragging');
-      mouseX = -1; updateOverlay();
-    } else return;
+    if (Math.abs(e.clientY - dragState.startY) > 6) { dragState.dragging = true; dragState.box.classList.add('dragging'); document.body.classList.add('is-dragging'); mouseX = -1; updateOverlay(); } else return;
   }
   e.preventDefault();
   const container = document.getElementById('charts');
   const boxes = Array.from(container.querySelectorAll('.chart-box'));
   const dragging = dragState.box;
   let target = null;
-  for (let i = 0; i < boxes.length; i++) {
-    if (boxes[i] === dragging) continue;
-    const r = boxes[i].getBoundingClientRect();
-    if (e.clientY < r.top + r.height / 2) { target = boxes[i]; break; }
-  }
-  if (target) container.insertBefore(dragging, target);
-  else container.appendChild(dragging);
+  for (let i = 0; i < boxes.length; i++) { if (boxes[i] === dragging) continue; const r = boxes[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { target = boxes[i]; break; } }
+  if (target) container.insertBefore(dragging, target); else container.appendChild(dragging);
 });
 window.addEventListener('mouseup', () => endDrag(true));
 window.addEventListener('blur', () => endDrag(true));
@@ -869,31 +704,25 @@ window.addEventListener('blur', () => endDrag(true));
 function getScale(el, W, H) {
   const pad = { l: 58, r: 10, t: 24, b: 18 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
-  const yRange = (el.yMax - el.yMin) || 1;
-  const yPad = yRange * 0.06;
-  const tickMin = el.fixed ? el.yMin : el.yMin - yPad;
-  const tickMax = el.fixed ? el.yMax : el.yMax + yPad;
+  const yRange = (el.yMax - el.yMin) || 1, yPad = yRange * 0.06;
+  const tickMin = el.fixed ? el.yMin : el.yMin - yPad, tickMax = el.fixed ? el.yMax : el.yMax + yPad;
   const yTicks = getNiceTicks(tickMin, tickMax, 5);
   const dYMin = yTicks[0], dYMax = yTicks[yTicks.length - 1];
   return { pad, pw, ph, yTicks, dYMin, dYMax, dYRange: (dYMax - dYMin) || 1 };
 }
 
 function getDangerForChart(param, tStart, tEnd) {
-  if (param.retardChart && dangerRetards.length) {
-    return { list: dangerRetards.filter(e => e.x >= tStart && e.x <= tEnd), color: '#FF1744', glow: 'rgba(255,23,68,.28)', badge: 'откат' };
-  }
-  if (param.flapChart && throttleFlaps.length) {
-    return { list: throttleFlaps.filter(e => e.x >= tStart && e.x <= tEnd), color: '#FFAB00', glow: 'rgba(255,171,0,.28)', badge: 'хлопание' };
-  }
-  if (param.turboChart && turboEvents.length) {
-    return { list: turboEvents.filter(e => e.x >= tStart && e.x <= tEnd), color: '#40C4FF', glow: 'rgba(64,196,255,.28)', badge: 'турбо' };
-  }
+  if (param.retardChart && dangerRetards.length) return { list: dangerRetards.filter(e => e.target === param.name && e.x >= tStart && e.x <= tEnd), color: '#FF1744', glow: 'rgba(255,23,68,.28)', badge: 'откат' };
+  if (param.flapChart && throttleFlaps.length) return { list: throttleFlaps.filter(e => e.target === param.name && e.x >= tStart && e.x <= tEnd), color: '#FFAB00', glow: 'rgba(255,171,0,.28)', badge: 'хлопание' };
+  if (param.turboChart && turboEvents.length) return { list: turboEvents.filter(e => e.target === param.name && e.x >= tStart && e.x <= tEnd), color: '#40C4FF', glow: 'rgba(64,196,255,.28)', badge: 'турбо' };
+  if (param.knockChart && knockEvents.length) return { list: knockEvents.filter(e => e.target === param.name && e.x >= tStart && e.x <= tEnd), color: '#FF1744', glow: 'rgba(255,23,68,.28)', badge: 'детонация', isKnock: true };
   return null;
 }
 
 function dangerLabel(d, e) {
   if (d.badge === 'откат') return 'откат!';
   if (d.badge === 'хлопание') return 'хлопок';
+  if (d.badge === 'детонация') return 'детонация';
   return TURBO_LABELS[e.kind] || 'турбо';
 }
 
@@ -905,76 +734,42 @@ function drawChart(el) {
   const s = getScale(el, W, H);
   const { pad, pw, ph, yTicks, dYMin, dYMax, dYRange } = s;
   const xTicks = getNiceTicks(tStart, tEnd, Math.max(4, Math.min(10, Math.round(pw / 140))));
-
-  ctx.fillStyle = '#161b22';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.fillStyle = param.color;
-  ctx.fillRect(8, 4.5, 4, 13);
-  ctx.font = '700 15px ' + SANS;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#e2e8f0';
+  ctx.fillStyle = '#161b22'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = param.color; ctx.fillRect(8, 4.5, 4, 13);
+  ctx.font = '700 15px ' + SANS; ctx.textAlign = 'left'; ctx.fillStyle = '#e2e8f0';
   ctx.fillText(param.name, 17, 16);
-  if (param.unit) {
-    const nw = ctx.measureText(param.name).width;
-    ctx.font = '11px ' + MONO;
-    ctx.fillStyle = '#75808e';
-    ctx.fillText(param.unit, 23 + nw, 16);
-  }
-
+  if (param.unit) { const nw = ctx.measureText(param.name).width; ctx.font = '11px ' + MONO; ctx.fillStyle = '#75808e'; ctx.fillText(param.unit, 23 + nw, 16); }
   const danger = getDangerForChart(param, tStart, tEnd);
-
   const realPts = pts.filter(p => !p.isBoundary);
   const fullCoverage = realPts.length === total && total > 0;
   let stats = realPts.length + '/' + total + ' ' + plural(realPts.length);
   if (avgInterval > 0) stats += ' · Δt ' + avgInterval.toFixed(2) + 's';
-  if (realPts.length) {
-    const mm = minMax(realPts);
-    stats += ' · ' + formatValue(mm.min) + '…' + formatValue(mm.max);
-  }
-
+  if (realPts.length) { const mm = minMax(realPts); stats += ' · ' + formatValue(mm.min) + '…' + formatValue(mm.max); }
   let rightX = W - 8;
   if (danger && danger.list.length) {
     const bText = '⚠ ' + danger.badge + ': ' + danger.list.length;
     ctx.font = '700 11px ' + MONO;
-    const bw = ctx.measureText(bText).width + 16;
-    const bx = rightX - bw;
-    ctx.fillStyle = 'rgba(10,13,17,.85)';
-    ctx.beginPath(); ctx.roundRect(bx, 3.5, bw, 17, 5); ctx.fill();
-    ctx.strokeStyle = danger.color;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.fillStyle = danger.color;
-    ctx.textAlign = 'center';
-    ctx.fillText(bText, bx + bw / 2, 16);
+    const bw = ctx.measureText(bText).width + 16, bx = rightX - bw;
+    ctx.fillStyle = 'rgba(10,13,17,.85)'; ctx.beginPath(); ctx.roundRect(bx, 3.5, bw, 17, 5); ctx.fill();
+    ctx.strokeStyle = danger.color; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = danger.color; ctx.textAlign = 'center'; ctx.fillText(bText, bx + bw / 2, 16);
     rightX = bx - 10;
   }
-
-  ctx.font = '13.5px ' + MONO;
-  ctx.textAlign = 'right';
+  ctx.font = '13.5px ' + MONO; ctx.textAlign = 'right';
   ctx.fillStyle = fullCoverage ? '#9fd8a4' : '#7d9b80';
   ctx.fillText(stats, rightX, 16);
-
   if (param.anomaly && realPts.length) {
     const [lo, hi] = param.anomaly;
     const nAnom = realPts.reduce((n, p) => n + ((p.y < lo || p.y > hi) ? 1 : 0), 0);
-    if (nAnom) {
-      const sw = ctx.measureText(stats).width;
-      ctx.fillStyle = '#FF5252';
-      ctx.fillText('⚠' + nAnom, rightX - sw - 4, 16);
-    }
+    if (nAnom) { const sw = ctx.measureText(stats).width; ctx.fillStyle = '#FF5252'; ctx.fillText('⚠' + nAnom, rightX - sw - 4, 16); }
   }
-
   ctx.font = '13px ' + MONO;
   yTicks.forEach(v => {
     const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
-    ctx.strokeStyle = 'rgba(255,255,255,.055)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,.055)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-    ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'right';
-    ctx.fillText(tickLabel(v), pad.l - 6, y + 4);
+    ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'right'; ctx.fillText(tickLabel(v), pad.l - 6, y + 4);
   });
-
   ctx.font = '10.5px ' + MONO;
   xTicks.forEach(v => {
     const x = pad.l + pw * (v - tStart) / (tEnd - tStart);
@@ -984,109 +779,84 @@ function drawChart(el) {
     ctx.fillStyle = '#8a95a5'; ctx.textAlign = 'center';
     ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 5);
   });
-
   if (param.zeroLine && dYMin < 0 && dYMax > 0) {
     const y0 = pad.t + ph * (1 - (0 - dYMin) / dYRange);
-    ctx.strokeStyle = 'rgba(255,82,82,0.7)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 4]);
-    ctx.beginPath(); ctx.moveTo(pad.l, y0); ctx.lineTo(W - pad.r, y0); ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(255,82,82,0.7)'; ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, y0); ctx.lineTo(W - pad.r, y0); ctx.stroke(); ctx.setLineDash([]);
   }
   if (param.anomaly) {
-    ctx.strokeStyle = 'rgba(255,82,82,0.4)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    param.anomaly.forEach(v => {
-      if (v >= dYMin && v <= dYMax) {
-        const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
-        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-      }
-    });
+    ctx.strokeStyle = 'rgba(255,82,82,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    param.anomaly.forEach(v => { if (v >= dYMin && v <= dYMax) { const y = pad.t + ph * (1 - (v - dYMin) / dYRange); ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke(); } });
     ctx.setLineDash([]);
   }
-  if (param.alertLine !== undefined && wholeMax >= param.alertLine &&
-      dYMin <= param.alertLine && dYMax >= param.alertLine) {
+  if (param.alertLine !== undefined && wholeMax >= param.alertLine && dYMin <= param.alertLine && dYMax >= param.alertLine) {
     const ya = pad.t + ph * (1 - (param.alertLine - dYMin) / dYRange);
-    ctx.strokeStyle = 'rgba(255,82,82,0.7)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 4]);
-    ctx.beginPath(); ctx.moveTo(pad.l, ya); ctx.lineTo(W - pad.r, ya); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.font = '700 10px ' + MONO;
-    ctx.fillStyle = '#FF8A80';
-    ctx.textAlign = 'right';
+    ctx.strokeStyle = 'rgba(255,82,82,0.7)'; ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, ya); ctx.lineTo(W - pad.r, ya); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = '700 10px ' + MONO; ctx.fillStyle = '#FF8A80'; ctx.textAlign = 'right';
     ctx.fillText('⚠ ' + param.alertLine + (param.unit || ''), W - pad.r - 4, ya - 4);
   }
-
-  ctx.strokeStyle = param.color;
-  ctx.lineWidth = 1.5;
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  pts.forEach((p, i) => {
-    const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
-    const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
+  ctx.strokeStyle = param.color; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.beginPath();
+  pts.forEach((p, i) => { const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart); const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
   ctx.stroke();
-
   const firstX = pad.l + pw * (pts[0].x - tStart) / (tEnd - tStart);
-  const lastX = pad.l + pw * (pts[pts.length - 1].x - tStart) / (tEnd - tStart);
-  ctx.lineTo(lastX, pad.t + ph);
-  ctx.lineTo(firstX, pad.t + ph);
-  ctx.closePath();
-  ctx.fillStyle = param.color + '1f';
-  ctx.fill();
-
+  const lastX = pad.l + pw * (pts[pts.length-1].x - tStart) / (tEnd - tStart);
+  ctx.lineTo(lastX, pad.t + ph); ctx.lineTo(firstX, pad.t + ph); ctx.closePath();
+  ctx.fillStyle = param.color + '1f'; ctx.fill();
+  // Маркеры
   if (realPts.length && realPts.length <= 1500) {
     const baseR = realPts.length > 500 ? 2.3 : 3;
     realPts.forEach(p => {
       const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
       const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
+      // Knock chart: подсветка точек = 1
+      if (param.knockChart && p.y >= 0.5) {
+        ctx.fillStyle = 'rgba(255,23,68,.28)'; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#FF1744'; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+        return;
+      }
       let fill = param.color, stroke = '#0e1116', r = baseR;
       const isAnomaly = param.anomaly && (p.y < param.anomaly[0] || p.y > param.anomaly[1]);
-      if (isAnomaly) {
-        fill = param.anomalyColor; stroke = '#fff'; r = baseR + 1.5;
-        ctx.fillStyle = fill + '3d';
-        ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.fill();
-      } else if (param.negColor && p.y < 0) {
-        fill = param.negColor; stroke = '#fff';
-      }
-      ctx.fillStyle = fill;
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (isAnomaly) { fill = param.anomalyColor; stroke = '#fff'; r = baseR + 1.5; ctx.fillStyle = fill + '3d'; ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI*2); ctx.fill(); }
+      else if (param.negColor && p.y < 0) { fill = param.negColor; stroke = '#fff'; }
+      ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
     });
   }
-
-  // Маркеры опасных событий
-  if (danger && danger.list.length) {
+  // Маркеры опасных событий (откаты/хлопки/турбо)
+  if (danger && danger.list.length && !param.knockChart) {
     danger.list.forEach(e => {
       const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
       const y = pad.t + ph * (1 - (e.y - dYMin) / dYRange);
-      ctx.fillStyle = danger.glow;
-      ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = danger.color;
-      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = danger.glow; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.fill();
+      // Жёлтое кольцо если откат подтверждён детонацией
+      if (e.knockConfirmed) { ctx.strokeStyle = '#FFD600'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 8.5, 0, Math.PI*2); ctx.stroke(); }
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = danger.color; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
     });
     if (danger.list.length <= 8) {
-      ctx.font = '700 10.5px ' + SANS;
-      ctx.textAlign = 'center';
+      ctx.font = '700 10.5px ' + SANS; ctx.textAlign = 'center';
       danger.list.forEach(e => {
         const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
         const y = pad.t + ph * (1 - (e.y - dYMin) / dYRange);
         const ly = (y - 14 < pad.t + 10) ? y + 22 : y - 14;
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(10,13,17,.85)';
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,13,17,.85)';
         ctx.strokeText(dangerLabel(danger, e), x, ly);
-        ctx.fillStyle = danger.color;
-        ctx.fillText(dangerLabel(danger, e), x, ly);
+        ctx.fillStyle = danger.color; ctx.fillText(dangerLabel(danger, e), x, ly);
       });
     }
   }
-
+  // Подписи детонации на knock-графике
+  if (param.knockChart && danger && danger.list.length && danger.list.length <= 8) {
+    ctx.font = '700 10.5px ' + SANS; ctx.textAlign = 'center';
+    danger.list.forEach(e => {
+      const x = pad.l + pw * (e.x - tStart) / (tEnd - tStart);
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,13,17,.85)';
+      ctx.strokeText('детонация', x, pad.t + 12);
+      ctx.fillStyle = '#FF1744'; ctx.fillText('детонация', x, pad.t + 12);
+    });
+  }
   ctx.restore();
 }
 
@@ -1097,135 +867,62 @@ function updateOverlay() {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     if (mouseX < 0) return;
     ctx.save(); ctx.scale(dpr, dpr);
-
     const W = overlay.clientWidth, H = overlay.clientHeight;
     const s = getScale(el, W, H);
     const { pad, pw, ph, dYMin, dYRange } = s;
-
     if (mouseX >= pad.l && mouseX <= W - pad.r) {
       const time = tStart + (mouseX - pad.l) / pw * (tEnd - tStart);
-      ctx.strokeStyle = 'rgba(255,255,255,.4)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath(); ctx.moveTo(mouseX, pad.t); ctx.lineTo(mouseX, pad.t + ph); ctx.stroke();
-      ctx.setLineDash([]);
-
+      ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(mouseX, pad.t); ctx.lineTo(mouseX, pad.t + ph); ctx.stroke(); ctx.setLineDash([]);
       const value = getValueAtTime(pts, time);
       if (value !== null) {
         const y = pad.t + ph * (1 - (value - dYMin) / dYRange);
         let ptColor = param.color;
         if (param.anomaly && (value < param.anomaly[0] || value > param.anomaly[1])) ptColor = param.anomalyColor;
         else if (param.negColor && value < 0) ptColor = param.negColor;
-
-        ctx.fillStyle = ptColor;
-        ctx.beginPath(); ctx.arc(mouseX, y, 4.5, 0, Math.PI * 2); ctx.fill();
+        else if (param.knockChart && value >= 0.5) ptColor = '#FF1744';
+        ctx.fillStyle = ptColor; ctx.beginPath(); ctx.arc(mouseX, y, 4.5, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-
         const label = time.toFixed(1) + 's · ' + formatValue(value) + (param.unit ? ' ' + param.unit : '');
         ctx.font = '700 11.5px ' + SANS;
         const tw = ctx.measureText(label).width;
         let lx = mouseX + 9, ly = y - 8;
         if (lx + tw + 10 > W - pad.r) lx = mouseX - tw - 19;
         if (ly < pad.t + 12) ly = y + 18;
-        ctx.fillStyle = 'rgba(10,13,17,.92)';
-        ctx.strokeStyle = ptColor;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(lx - 5, ly - 11, tw + 10, 17, 3);
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'left';
-        ctx.fillText(label, lx, ly + 1);
+        ctx.fillStyle = 'rgba(10,13,17,.92)'; ctx.strokeStyle = ptColor; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.roundRect(lx - 5, ly - 11, tw + 10, 17, 3); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(label, lx, ly + 1);
       }
     }
     ctx.restore();
   });
 }
 
-function minMax(arr) {
-  let min = Infinity, max = -Infinity;
-  for (let i = 0; i < arr.length; i++) {
-    const v = arr[i].y;
-    if (v < min) min = v;
-    if (v > max) max = v;
-  }
-  return { min, max };
-}
-
-// Бинарный поиск значения на момент времени (O(log n) вместо O(n))
+// ===== ХЕЛПЕРЫ =====
+function minMax(arr) { let min = Infinity, max = -Infinity; for (let i = 0; i < arr.length; i++) { const v = arr[i].y; if (v < min) min = v; if (v > max) max = v; } return { min, max }; }
 function getValueAtTime(pts, time) {
   const n = pts.length;
   if (!n) return null;
   if (time <= pts[0].x) return pts[0].y;
-  if (time >= pts[n - 1].x) return pts[n - 1].y;
+  if (time >= pts[n-1].x) return pts[n-1].y;
   let lo = 0, hi = n - 1;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (pts[mid].x <= time) lo = mid; else hi = mid;
-  }
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (pts[mid].x <= time) lo = mid; else hi = mid; }
   const dx = pts[hi].x - pts[lo].x;
   if (dx <= 0) return pts[hi].y;
-  const t = (time - pts[lo].x) / dx;
-  return pts[lo].y + t * (pts[hi].y - pts[lo].y);
+  return pts[lo].y + ((time - pts[lo].x) / dx) * (pts[hi].y - pts[lo].y);
 }
-
-function plural(n) {
-  const m10 = n % 10, m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return 'точка';
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'точки';
-  return 'точек';
-}
-
-function formatValue(v) {
-  const a = Math.abs(v);
-  if (a < 0.01) return '0';
-  if (a >= 100) return v.toFixed(0);
-  if (a >= 1) return v.toFixed(1);
-  return v.toFixed(2);
-}
-
-function tickLabel(v) {
-  if (Math.abs(v) < 1e-9) return '0';
-  const a = Math.abs(v);
-  if (a >= 100) return v.toFixed(0);
-  if (a >= 1) return String(Math.round(v * 10) / 10);
-  return String(Math.round(v * 100) / 100);
-}
-
-function formatDur(t) {
-  return t >= 60 ? Math.floor(t / 60) + 'м ' + Math.round(t % 60) + 'с' : t.toFixed(0) + 'с';
-}
-
-function formatWin(s) {
-  s = Math.round(s);
-  return s >= 60 ? Math.floor(s / 60) + 'м ' + (s % 60) + 'с' : s + 'с';
-}
-
-function niceNum(range, round) {
-  const exp = Math.floor(Math.log10(range));
-  const frac = range / Math.pow(10, exp);
-  let nice;
-  if (round) nice = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10;
-  else nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10;
-  return nice * Math.pow(10, exp);
-}
-
-function getNiceTicks(min, max, target) {
-  if (min === max) return [min];
-  const range = niceNum(max - min, false);
-  const spacing = niceNum(range / (target - 1), true);
-  const nMin = Math.floor(min / spacing) * spacing;
-  const nMax = Math.ceil(max / spacing) * spacing;
-  const ticks = [];
-  for (let v = nMin; v <= nMax + 0.5 * spacing; v += spacing) ticks.push(parseFloat(v.toFixed(10)));
-  return ticks;
-}
+function plural(n) { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return 'точка'; if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'точки'; return 'точек'; }
+function formatValue(v) { const a = Math.abs(v); if (a < 0.01) return '0'; if (a >= 100) return v.toFixed(0); if (a >= 1) return v.toFixed(1); return v.toFixed(2); }
+function tickLabel(v) { if (Math.abs(v) < 1e-9) return '0'; const a = Math.abs(v); if (a >= 100) return v.toFixed(0); if (a >= 1) return String(Math.round(v * 10) / 10); return String(Math.round(v * 100) / 100); }
+function formatDur(t) { return t >= 60 ? Math.floor(t / 60) + 'м ' + Math.round(t % 60) + 'с' : t.toFixed(0) + 'с'; }
+function formatWin(s) { s = Math.round(s); return s >= 60 ? Math.floor(s / 60) + 'м ' + (s % 60) + 'с' : s + 'с'; }
+function niceNum(range, round) { const exp = Math.floor(Math.log10(range)); const frac = range / Math.pow(10, exp); let nice; if (round) nice = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10; else nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10; return nice * Math.pow(10, exp); }
+function getNiceTicks(min, max, target) { if (min === max) return [min]; const range = niceNum(max - min, false); const spacing = niceNum(range / (target - 1), true); const nMin = Math.floor(min / spacing) * spacing; const nMax = Math.ceil(max / spacing) * spacing; const ticks = []; for (let v = nMin; v <= nMax + 0.5 * spacing; v += spacing) ticks.push(parseFloat(v.toFixed(10))); return ticks; }
 
 (function init() {
   const sw = parseFloat(loadSetting('windowSize'));
   if (!isNaN(sw) && sw >= 5) windowSize = sw;
-  const sf = loadSetting('fixedScale');
-  if (sf === '1') document.getElementById('fixedScale').checked = true;
+  if (loadSetting('fixedScale') === '1') document.getElementById('fixedScale').checked = true;
   updateControls();
 })();
 </script>
