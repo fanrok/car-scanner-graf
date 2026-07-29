@@ -109,12 +109,20 @@
     color: #4CAF50; border-color: #4CAF50; transform: scale(1.1);
     box-shadow: 0 0 0 4px rgba(76,175,80,.15);
   }
+  /* Панель справки: внешний блок без overflow (чтобы мостик не обрезался),
+     скролл — на внутреннем .help-panel-body */
   .help-panel {
     position: absolute; top: calc(100% + 10px); right: 0; width: 390px;
-    background: #1b2027; border: 1px solid #2f3945; border-radius: 10px;
-    padding: 14px 16px; box-shadow: 0 16px 44px rgba(0,0,0,.55);
     opacity: 0; visibility: hidden; transform: translateY(-6px);
     transition: all .18s ease; z-index: 300; pointer-events: none;
+  }
+  /* Невидимый мостик над панелью — не даёт :hover слететь при движении мыши вниз */
+  .help-panel::before {
+    content: ''; position: absolute; left: 0; right: 0; top: -12px; height: 12px;
+  }
+  .help-panel-body {
+    background: #1b2027; border: 1px solid #2f3945; border-radius: 10px;
+    padding: 14px 16px; box-shadow: 0 16px 44px rgba(0,0,0,.55);
     max-height: 78vh; overflow-y: auto;
   }
   .help:hover .help-panel, .help:focus-within .help-panel {
@@ -275,45 +283,47 @@
   <div class="help">
     <button class="help-btn" tabindex="0" aria-label="Справка">?</button>
     <div class="help-panel">
-      <h4>Управление</h4>
-      <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
-      Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
-      Наведите курсор на график — увидите точное значение в этой точке.<br>
-      Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка (сохраняется).</p>
+      <div class="help-panel-body">
+        <h4>Управление</h4>
+        <p><kbd>Shift</kbd> + <kbd>Колесо мыши</kbd> — прокрутка позиции влево / вправо.<br>
+        Ползунки «Окно» и «Позиция», кнопки 🔍+ / 🔍− — масштаб.<br>
+        Наведите курсор на график — увидите точное значение в этой точке.<br>
+        Зажмите <kbd>ЛКМ</kbd> на графике и тяните — перестановка (сохраняется).</p>
 
-      <h4>Анализатор опасных событий</h4>
-      <ul>
-        <li><b>Откат УОЗ</b> (красный): минусовой УОЗ при оборотах &gt; 1000, <b>нажатой педали</b> (ДПДЗ ≥ 15%) и неповороте оборотов — детонация под нагрузкой. ДПДЗ &lt; 15% = педаль отпущена (штатный режим) — не помечается. Если есть «нагрузка на двигатель», требуется ≥ 25%. ДПДЗ ≥ 84% помечается как «тапка в пол».</li>
-        <li><b>Хлопание дросселя</b> (оранжевый): скачки ДПДЗ ~50–80% при оборотах &gt; 1000 без их падения.</li>
-        <li><b>Аномалии турбины</b> (голубой): недодув при тапке в пол (ДПДЗ ≥ 84%, об/мин &gt; 2000, наддув &lt; 0.3 bar), резкий сброс наддува (&gt; 0.5 bar при нажатом газе) и скачок наддува (риск передува).</li>
-        <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход к моменту.</li>
-      </ul>
+        <h4>Анализатор опасных событий</h4>
+        <ul>
+          <li><b>Откат УОЗ</b> (красный): минусовой УОЗ при оборотах &gt; 1000, <b>нажатой педали</b> (ДПДЗ ≥ 15%) и неповороте оборотов — детонация под нагрузкой. ДПДЗ &lt; 15% = педаль отпущена (штатный режим) — не помечается. Если есть «нагрузка на двигатель», требуется ≥ 25%. ДПДЗ ≥ 84% помечается как «тапка в пол».</li>
+          <li><b>Хлопание дросселя</b> (оранжевый): скачки ДПДЗ ~50–80% при оборотах &gt; 1000 без их падения.</li>
+          <li><b>Аномалии турбины</b> (голубой): недодув при тапке в пол (ДПДЗ ≥ 84%, об/мин &gt; 2000, наддув &lt; 0.3 bar), резкий сброс наддува (&gt; 0.5 bar при нажатом газе) и скачок наддува (риск передува).</li>
+          <li>Панель событий свёрнута — кликните, чтобы развернуть. Клик по событию — переход к моменту.</li>
+        </ul>
 
-      <h4>Данные и настройки</h4>
-      <ul>
-        <li>Неизвестные параметры (например, расход топлива) рисуются автоматически <b>внизу</b>.</li>
-        <li>Если параметра нет в логе — его график не появляется.</li>
-        <li>Порядок графиков, окно и «Фикс. масштаб» сохраняются в cookies.</li>
-      </ul>
+        <h4>Данные и настройки</h4>
+        <ul>
+          <li>Неизвестные параметры (например, расход топлива) рисуются автоматически <b>внизу</b>.</li>
+          <li>Если параметра нет в логе — его график не появляется.</li>
+          <li>Порядок графиков, окно и «Фикс. масштаб» сохраняются в cookies.</li>
+        </ul>
 
-      <h4>Экспорт из CarScanner Pro</h4>
-      <p>Логгер → записать → <b>Экспорт / Поделиться</b> → CSV, <b>вертикальный формат</b>.
-      Строка: время; имя; значение; единица — через <b>;</b></p>
-      <code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code>
+        <h4>Экспорт из CarScanner Pro</h4>
+        <p>Логгер → записать → <b>Экспорт / Поделиться</b> → CSV, <b>вертикальный формат</b>.
+        Строка: время; имя; значение; единица — через <b>;</b></p>
+        <code>"33176.9982153";"Массовый расход воздуха";"6.66";"g/sec";</code>
 
-      <h4>Как уменьшить Δt (интервал опроса)</h4>
-      <ul>
-        <li>Включите оптимизацию опроса в настройках CarScanner (пакетный режим).</li>
-        <li>Используйте быстрый адаптер — например <b>vLinker</b> (дешёвые ELM327 сильно медленнее).</li>
-        <li>Уменьшите число параметров на панели приборов.</li>
-        <li>Отключите постоянное считывание расхода топлива.</li>
-      </ul>
+        <h4>Как уменьшить Δt (интервал опроса)</h4>
+        <ul>
+          <li>Включите оптимизацию опроса в настройках CarScanner (пакетный режим).</li>
+          <li>Используйте быстрый адаптер — например <b>vLinker</b> (дешёвые ELM327 сильно медленнее).</li>
+          <li>Уменьшите число параметров на панели приборов.</li>
+          <li>Отключите постоянное считывание расхода топлива.</li>
+        </ul>
 
-      <h4>О проекте</h4>
-      <p>GitHub: <a href="https://github.com/fanrok/car-scanner-graf" target="_blank" rel="noopener">fanrok/car-scanner-graf</a><br>
-      Автор: <b>larin992</b> · <a href="mailto:larin992@gmail.com">larin992@gmail.com</a><br>
-      Разработано при поддержке Qwen (Alibaba Group).<br>
-      Лицензия MIT — делайте что угодно, сохраняя упоминание автора.</p>
+        <h4>О проекте</h4>
+        <p>GitHub: <a href="https://github.com/fanrok/car-scanner-graf" target="_blank" rel="noopener">fanrok/car-scanner-graf</a><br>
+        Автор: <b>larin992</b> · <a href="mailto:larin992@gmail.com">larin992@gmail.com</a><br>
+        Разработано при поддержке Qwen (Alibaba Group).<br>
+        Лицензия MIT — делайте что угодно, сохраняя упоминание автора.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -379,9 +389,9 @@ const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC
 
 // ===== Пороги анализатора =====
 const MIN_RPM = 1000;          // ниже — холостой ход, анализ не проводим
-const TPS_RELEASED = 15;       // ДПДЗ < 15% = педаль отпущена (отсечка/торможение) — не опасно
-const TPS_WOT = 84;            // ДПДЗ >= 84% = тапка в пол (CarScanner показывает ~85.5 как 100%)
-const LOAD_MIN = 25;           // минимальная нагрузка (%), при которой возможна детонация
+const TPS_RELEASED = 15;       // ДПДЗ < 15% = педаль отпущена — не опасно
+const TPS_WOT = 84;            // ДПДЗ >= 84% = тапка в пол
+const LOAD_MIN = 25;           // мин. нагрузка (%), при которой возможна детонация
 const RPM_DROP_EPS = 15;       // падение оборотов больше этого = "падают" (норма)
 const FLAP_ZONE = [45, 85];    // зона ДПДЗ, в которой ищем хлопки
 const FLAP_AMP = 8;            // минимальное плечо зигзага ДПДЗ, %
@@ -399,6 +409,7 @@ let allData = {}, extraNames = [], extraMeta = {}, chartOrder = [];
 let totalTime = 0, windowSize = 30, timePosition = 0;
 let canvasElements = [], mouseX = -1, rafPending = false, dragState = null;
 let dangerRetards = [], throttleFlaps = [], turboEvents = [];
+let pendingFlash = null;
 const dpr = window.devicePixelRatio || 1;
 
 // ===== НАСТРОЙКИ (cookies + localStorage) =====
@@ -459,8 +470,8 @@ document.addEventListener('drop', e => {
 
 // ===== УПРАВЛЕНИЕ =====
 const wsSlider = document.getElementById('windowSize');
-document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.max(5, windowSize * 0.7); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
-document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.min(parseFloat(wsSlider.max), windowSize * 1.4); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
+document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.round(Math.max(5, windowSize * 0.7)); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
+document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.round(Math.min(parseFloat(wsSlider.max), windowSize * 1.4)); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
 document.getElementById('resetZoom').addEventListener('click', () => { windowSize = 30; timePosition = 0; updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
 wsSlider.addEventListener('input', e => { windowSize = parseFloat(e.target.value); updateControls(); saveSetting('windowSize', windowSize); scheduleRedraw(); });
 document.getElementById('timePosition').addEventListener('input', e => {
@@ -577,9 +588,6 @@ function parseAndDraw(text, fileName) {
 }
 
 // ===== АНАЛИЗАТОР ОПАСНЫХ СОБЫТИЙ =====
-// Откат УОЗ: минусовой УОЗ + обороты > 1000 + педаль нажата (ДПДЗ >= 15%) +
-// обороты не падают + (если есть нагрузка) нагрузка >= 25%. Детонация возникает
-// именно под нагрузкой; при отпущенной педали минусовой УОЗ — штатный режим.
 function runAnalysis() {
   dangerRetards = [];
   throttleFlaps = [];
@@ -603,15 +611,15 @@ function runAnalysis() {
       const rpmAt = getValueAtTime(rpm, p.x);
       if (rpmAt === null || rpmAt <= MIN_RPM) continue;          // холостой ход
       const tpsAt = hasTps ? getValueAtTime(tps, p.x) : null;
-      if (tpsAt !== null && tpsAt < TPS_RELEASED) continue;      // педаль отпущена — не опасно
+      if (tpsAt !== null && tpsAt < TPS_RELEASED) continue;      // педаль отпущена
       if (hasLoad) {
         const loadAt = getValueAtTime(load, p.x);
-        if (loadAt !== null && loadAt < LOAD_MIN) continue;      // лёгкая нагрузка — детонация маловероятна
+        if (loadAt !== null && loadAt < LOAD_MIN) continue;      // лёгкая нагрузка
       }
       while (j < rpm.length && rpm[j].x <= p.x) j++;
       const a = rpm[j], b = rpm[j + 1];
       if (!a || !b) continue;
-      if (b.y < a.y - RPM_DROP_EPS) continue;                    // обороты падают — сброс газа/переключение
+      if (b.y < a.y - RPM_DROP_EPS) continue;                    // обороты падают — норма
       dangerRetards.push({
         x: p.x, y: p.y, rpm: Math.round(rpmAt),
         tps: tpsAt !== null ? Math.round(tpsAt) : null,
@@ -639,7 +647,7 @@ function runAnalysis() {
     throttleFlaps = dedup(throttleFlaps, MERGE_FLAP);
   }
 
-  // --- Аномалии турбины (по расчетному наддуву) ---
+  // --- Аномалии турбины ---
   if (boost && boost.length >= 2 && hasTps && rpm && rpm.length >= 2) {
     for (let k = 1; k < boost.length; k++) {
       const p0 = boost[k - 1], p1 = boost[k];
@@ -648,9 +656,9 @@ function runAnalysis() {
       if (t1 === null || r1 === null) continue;
       const delta = p1.y - p0.y;
       let kind = null;
-      if (t1 >= TPS_WOT && r1 > TURBO_WOT_RPM && p1.y < TURBO_UNDERBOOST) kind = 'underboost'; // тапка в пол, а наддува нет
-      else if (delta < -TURBO_DELTA && t1 > TURBO_DROP_TPS) kind = 'drop';                     // резкий сброс при нажатом газе
-      else if (delta > TURBO_DELTA) kind = 'spike';                                            // скачок — риск передува
+      if (t1 >= TPS_WOT && r1 > TURBO_WOT_RPM && p1.y < TURBO_UNDERBOOST) kind = 'underboost';
+      else if (delta < -TURBO_DELTA && t1 > TURBO_DROP_TPS) kind = 'drop';
+      else if (delta > TURBO_DELTA) kind = 'spike';
       if (kind) turboEvents.push({ x: p1.x, y: p1.y, kind: kind });
     }
     turboEvents = dedup(turboEvents, MERGE_TURBO);
@@ -710,16 +718,9 @@ function renderEventsPanel() {
 function jumpToEvent(ev) {
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(maxPos, ev.x - windowSize / 3));
+  pendingFlash = ev.target;
   updateControls();
   scheduleRedraw();
-  setTimeout(() => {
-    const box = document.querySelector('#charts .chart-box[data-name="' + ev.target + '"]');
-    if (box) {
-      box.classList.add('flash');
-      setTimeout(() => box.classList.remove('flash'), 950);
-      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }, 60);
 }
 
 function getConfig(name) {
@@ -814,11 +815,33 @@ function redrawCharts() {
   });
 
   window.scrollTo(0, keepScrollY);
+
+  // Подсветка графика после перехода к событию (без гонок по времени)
+  if (pendingFlash) {
+    const box = container.querySelector('.chart-box[data-name="' + pendingFlash + '"]');
+    if (box) {
+      box.classList.add('flash');
+      setTimeout(() => box.classList.remove('flash'), 950);
+      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    pendingFlash = null;
+  }
 }
 
 // ===== ПЕРЕТАСКИВАНИЕ =====
+function endDrag(saveIt) {
+  if (!dragState) return;
+  if (dragState.dragging) {
+    dragState.box.classList.remove('dragging');
+    document.body.classList.remove('is-dragging');
+    if (saveIt) saveOrder();
+  }
+  dragState = null;
+}
 window.addEventListener('mousemove', e => {
   if (!dragState) return;
+  // Кнопка отпущена (например, за пределами окна) — завершаем перенос
+  if (dragState.dragging && e.buttons === 0) { endDrag(true); return; }
   if (!dragState.dragging) {
     if (Math.abs(e.clientY - dragState.startY) > 6) {
       dragState.dragging = true;
@@ -840,15 +863,8 @@ window.addEventListener('mousemove', e => {
   if (target) container.insertBefore(dragging, target);
   else container.appendChild(dragging);
 });
-window.addEventListener('mouseup', () => {
-  if (!dragState) return;
-  if (dragState.dragging) {
-    dragState.box.classList.remove('dragging');
-    document.body.classList.remove('is-dragging');
-    saveOrder();
-  }
-  dragState = null;
-});
+window.addEventListener('mouseup', () => endDrag(true));
+window.addEventListener('blur', () => endDrag(true));
 
 function getScale(el, W, H) {
   const pad = { l: 58, r: 10, t: 24, b: 18 };
@@ -862,7 +878,6 @@ function getScale(el, W, H) {
   return { pad, pw, ph, yTicks, dYMin, dYMax, dYRange: (dYMax - dYMin) || 1 };
 }
 
-// Опасные события для данного графика (в окне)
 function getDangerForChart(param, tStart, tEnd) {
   if (param.retardChart && dangerRetards.length) {
     return { list: dangerRetards.filter(e => e.x >= tStart && e.x <= tEnd), color: '#FF1744', glow: 'rgba(255,23,68,.28)', badge: 'откат' };
@@ -1137,19 +1152,21 @@ function minMax(arr) {
   return { min, max };
 }
 
+// Бинарный поиск значения на момент времени (O(log n) вместо O(n))
 function getValueAtTime(pts, time) {
-  if (!pts.length) return null;
+  const n = pts.length;
+  if (!n) return null;
   if (time <= pts[0].x) return pts[0].y;
-  if (time >= pts[pts.length - 1].x) return pts[pts.length - 1].y;
-  for (let i = 0; i < pts.length - 1; i++) {
-    if (pts[i].x <= time && pts[i + 1].x >= time) {
-      const dx = pts[i + 1].x - pts[i].x;
-      if (dx <= 0) return pts[i + 1].y;
-      const t = (time - pts[i].x) / dx;
-      return pts[i].y + t * (pts[i + 1].y - pts[i].y);
-    }
+  if (time >= pts[n - 1].x) return pts[n - 1].y;
+  let lo = 0, hi = n - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (pts[mid].x <= time) lo = mid; else hi = mid;
   }
-  return null;
+  const dx = pts[hi].x - pts[lo].x;
+  if (dx <= 0) return pts[hi].y;
+  const t = (time - pts[lo].x) / dx;
+  return pts[lo].y + t * (pts[hi].y - pts[lo].y);
 }
 
 function plural(n) {
