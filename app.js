@@ -27,9 +27,24 @@ const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC
 
 const SKIP_PATTERNS = [/^(\[[^\]]*\]\s*)?обороты\s+двигателя\s*x\s*\d+\s*$/i];
 
+// ===== Детекция отката УОЗ =====
 const MIN_RPM = 1000, TPS_RELEASED = 15, TPS_WOT = 84, LOAD_MIN = 25, RPM_DROP_EPS = 15;
-const FLAP_ZONE = [45, 85], FLAP_AMP = 8, FLAP_RPM_DROP = 30;
+const RETARD_MIN_THRESHOLD = -2.0;    // УОЗ ≤ этого значения считается откатом (°)
+const RETARD_MIN_CONSECUTIVE = 2;      // Минимум последовательных точек с глубоким минусом
+const RETARD_LOOKAHEAD_WINDOW = 0.5;   // Окно проверки условий вокруг события (с)
+const RETARD_DERIVATIVE_MIN = 0.5;     // Минимальная скорость падения УОЗ (°/с) — отсекает плавный дрейф
+const RETARD_CLUSTER_GAP = 1.0;        // Макс. разрыв между точками кластера (с) — если больше, считаем разными эпизодами
+
+// ===== Детекция хлопания дросселя =====
+const FLAP_ZONE = [45, 85], FLAP_MIN_AMPLITUDE = 10, FLAP_RPM_DROP = 30;
+const FLAP_MIN_OSCILLATIONS = 3;       // Минимум «зигзагов» в серии для события
+const FLAP_MAX_DURATION = 2.0;         // Макс. длительность серии (с)
+const FLAP_RPM_VARIATION_MIN = 50;     // Минимальные колебания RPM при хлопке (иначе — шум)
+
+// ===== Детекция аномалий турбины =====
 const TURBO_UNDERBOOST = 0.3, TURBO_WOT_RPM = 2000, TURBO_DELTA = 0.5, TURBO_DROP_TPS = 50;
+
+// ===== Склейка событий =====
 const MERGE_RETARD = 2, MERGE_FLAP = 2, MERGE_TURBO = 3, MERGE_KNOCK = 2;
 const CHART_H = 176, MAX_CHIPS = 500;
 
@@ -318,42 +333,196 @@ function runAnalysis() {
 }
 function detectRetards(uozName, rpm, tps, load, knock) {
   const uoz = allData[uozName], label = paramConfigs[uozName].shortName, out = [];
-  let j = 0;
+  // Шаг 1: кластеризация — группируем последовательные точки с глубоким минусом
+  const clusters = [];
+  let currentCluster = null;
   for (let k = 0; k < uoz.length; k++) {
     const p = uoz[k];
-    if (p.y >= 0) continue;
-    const rpmAt = getValueAtTime(rpm, p.x);
+    if (p.y <= RETARD_MIN_THRESHOLD) {
+      if (!currentCluster) {
+        currentCluster = { points: [p], minVal: p.y, startX: p.x, endX: p.x };
+      } else {
+        // Если разрыв между точками больше RETARD_CLUSTER_GAP — новый эпизод
+        if (p.x - currentCluster.endX > RETARD_CLUSTER_GAP) {
+          if (currentCluster.points.length >= RETARD_MIN_CONSECUTIVE) clusters.push(currentCluster);
+          currentCluster = { points: [p], minVal: p.y, startX: p.x, endX: p.x };
+        } else {
+          currentCluster.points.push(p);
+          currentCluster.endX = p.x;
+          if (p.y < currentCluster.minVal) currentCluster.minVal = p.y;
+        }
+      }
+    } else {
+      if (currentCluster) {
+        if (currentCluster.points.length >= RETARD_MIN_CONSECUTIVE) clusters.push(currentCluster);
+        currentCluster = null;
+      }
+    }
+  }
+  if (currentCluster && currentCluster.points.length >= RETARD_MIN_CONSECUTIVE) clusters.push(currentCluster);
+
+  // Шаг 2: верификация каждого кластера по условиям
+  for (const cluster of clusters) {
+    // Берём самую глубокую точку как репрезентативную
+    const peakPoint = cluster.points.reduce((min, p) => p.y < min.y ? p : min, cluster.points[0]);
+    const midX = (cluster.startX + cluster.endX) / 2;
+
+    // --- RPM ---
+    const rpmAt = getValueAtTime(rpm, midX);
     if (rpmAt === null || rpmAt <= MIN_RPM) continue;
-    const tpsAt = tps ? getValueAtTime(tps, p.x) : null;
-    if (tpsAt !== null && tpsAt < TPS_RELEASED) continue;
-    if (load) { const l = getValueAtTime(load, p.x); if (l !== null && l < LOAD_MIN) continue; }
-    while (j < rpm.length && rpm[j].x <= p.x) j++;
-    const a = rpm[j], b = rpm[j + 1];
-    if (!a || !b) continue;
-    if (b.y < a.y - RPM_DROP_EPS) continue;
-    const knockAt = knock ? getValueAtTime(knock, p.x) : null;
+
+    // --- TPS (среднее по окну) + проверки, требующие TPS ---
+    const winStart = cluster.startX - RETARD_LOOKAHEAD_WINDOW;
+    const winEnd = cluster.endX + RETARD_LOOKAHEAD_WINDOW;
+    let avgTPS = null;
+    if (tps) {
+      const tpsWindow = sliceRange(tps, winStart, winEnd);
+      avgTPS = tpsWindow.length > 0
+        ? tpsWindow.reduce((s, p) => s + p.y, 0) / tpsWindow.length
+        : null;
+      if (avgTPS !== null && avgTPS < TPS_RELEASED) continue;
+
+      // --- Фильтр переключения: TPS падает после события? ---
+      const afterTps = sliceRange(tps, midX, midX + 0.4);
+      if (afterTps.length > 0) {
+        const anyTpsDrop = afterTps.some(p => p.y < TPS_RELEASED);
+        if (anyTpsDrop) continue;
+      }
+
+      // --- Load (среднее по окну) — только при наличии TPS ---
+      if (load) {
+        const loadWindow = sliceRange(load, winStart, winEnd);
+        if (loadWindow.length > 0) {
+          const avgLoad = loadWindow.reduce((s, p) => s + p.y, 0) / loadWindow.length;
+          if (avgLoad < LOAD_MIN) continue;
+        }
+      }
+
+      // --- RPM не падает (только при наличии TPS) ---
+      const rpmAfter = sliceRange(rpm, cluster.startX, cluster.endX + 0.2);
+      if (rpmAfter.length >= 2) {
+        const rpmDrop = rpmAfter[rpmAfter.length - 1].y < rpmAfter[0].y - RPM_DROP_EPS;
+        if (rpmDrop) continue;
+      }
+    } else {
+      // --- Без TPS: проверяем стабильность RPM в момент события ---
+      const rpmDuring = sliceRange(rpm, cluster.startX, cluster.endX);
+      if (rpmDuring.length >= 2) {
+        const rpmDrift = Math.abs(rpmDuring[rpmDuring.length - 1].y - rpmDuring[0].y);
+        // Если RPM ВО ВРЕМЯ события существенно меняются — это переключение/торможение, не откат
+        if (rpmDrift > RPM_DROP_EPS * 4) continue;
+      }
+      // Load без TPS не проверяем — он может не отражать реальное нажатие педали
+    }
+
+    // --- Derivative check: отсекаем плавный дрейф ---
+    const idx = lowerBound(uoz, cluster.startX);
+    if (idx >= 1) {
+      const beforeVal = uoz[idx - 1].y;
+      // Если перед кластером уже был глубокий минус, и скорость падения мала — это дрейф, не откат
+      if (beforeVal <= RETARD_MIN_THRESHOLD) {
+        const delta = peakPoint.y - beforeVal;
+        const dt = peakPoint.x - uoz[idx - 1].x;
+        const rate = dt > 0 ? Math.abs(delta / dt) : 0;
+        if (rate < RETARD_DERIVATIVE_MIN) continue;
+      }
+    }
+
+    // --- Детонация рядом ---
+    const knockAt = knock ? getValueAtTime(knock, midX) : null;
+    const knockConfirmed = knockAt !== null && knockAt >= 0.5;
+
+    // --- Severity: комбинация глубины, длительности, WOT и детонации ---
+    const depth = Math.abs(peakPoint.y);
+    const count = cluster.points.length;
+    const duration = cluster.endX - cluster.startX;
+    const wot = avgTPS !== null && avgTPS >= TPS_WOT;
+    const severity = depth * Math.log2(count + 1) * (wot ? 2 : 1) * (knockConfirmed ? 3 : 1);
+
+    const tpsAt = avgTPS !== null ? Math.round(avgTPS) : null;
     out.push({
-      x: p.x, y: p.y, rpm: Math.round(rpmAt),
-      tps: tpsAt !== null ? Math.round(tpsAt) : null,
-      load: load ? (() => { const l = getValueAtTime(load, p.x); return l !== null ? Math.round(l) : null; })() : null,
-      wot: tpsAt !== null && tpsAt >= TPS_WOT,
-      knockConfirmed: knockAt !== null && knockAt >= 0.5,
-      label: label, target: uozName
+      x: peakPoint.x,
+      y: peakPoint.y,
+      rpm: Math.round(rpmAt),
+      tps: tpsAt,
+      load: load ? (() => { const l = getValueAtTime(load, midX); return l !== null ? Math.round(l) : null; })() : null,
+      wot,
+      knockConfirmed,
+      label,
+      target: uozName,
+      severity: Math.round(severity * 10) / 10,
+      duration: parseFloat(duration.toFixed(2))
     });
   }
+  // Сортируем по опасности (самые опасные первые)
+  out.sort((a, b) => b.severity - a.severity);
   return out;
 }
 function detectFlaps(tpsName, tps, rpm) {
   const out = [];
-  for (let k = 1; k < tps.length - 1; k++) {
-    const a = tps[k-1], b = tps[k], c = tps[k+1];
-    if (b.y < FLAP_ZONE[0] || b.y > FLAP_ZONE[1]) continue;
-    const d1 = b.y - a.y, d2 = c.y - b.y;
-    if (!((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0))) continue;
-    if (Math.abs(d1) < FLAP_AMP || Math.abs(d2) < FLAP_AMP) continue;
-    const r0 = getValueAtTime(rpm, a.x), r1 = getValueAtTime(rpm, c.x);
-    if (r0 === null || r1 === null || Math.min(r0, r1) <= MIN_RPM) continue;
-    if (r1 >= r0 - FLAP_RPM_DROP) out.push({ x: b.x, y: b.y, target: tpsName });
+  let k = 1;
+  while (k < tps.length - 1) {
+    // Ищем точку в зоне хлопка [45-85%]
+    if (tps[k].y < FLAP_ZONE[0] || tps[k].y > FLAP_ZONE[1]) { k++; continue; }
+
+    // Проверяем, есть ли зигзаг (пик или впадина)
+    const d1 = tps[k].y - tps[k-1].y, d2 = tps[k+1].y - tps[k].y;
+    const isZigzag = (d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0);
+    if (!isZigzag) { k++; continue; }
+    if (Math.abs(d1) < FLAP_MIN_AMPLITUDE || Math.abs(d2) < FLAP_MIN_AMPLITUDE) { k++; continue; }
+
+    // Нашли первое колебание. Пробуем насчитать серию подряд
+    let oscillations = 1;
+    let seriesEnd = k + 1;
+    while (seriesEnd < tps.length - 1) {
+      const prev = tps[seriesEnd - 1], curr = tps[seriesEnd], next = tps[seriesEnd + 1];
+      if (curr.y < FLAP_ZONE[0] || curr.y > FLAP_ZONE[1]) break;
+      const dd1 = curr.y - prev.y, dd2 = next.y - curr.y;
+      const isNextZigzag = (dd1 > 0 && dd2 < 0) || (dd1 < 0 && dd2 > 0);
+      if (!isNextZigzag) break;
+      if (Math.abs(dd1) < FLAP_MIN_AMPLITUDE || Math.abs(dd2) < FLAP_MIN_AMPLITUDE) break;
+      oscillations++;
+      seriesEnd++;
+    }
+
+    // Требуем минимум N последовательных колебаний
+    if (oscillations < FLAP_MIN_OSCILLATIONS) { k = seriesEnd; continue; }
+
+    // Временное окно: серия не должна быть слишком длинной (разные нажатия педали)
+    const dt = tps[seriesEnd].x - tps[k-1].x;
+    if (dt > FLAP_MAX_DURATION) { k = seriesEnd; continue; }
+
+    // RPM-контекст: обороты не ниже холостых, не падают (не coast/переключение)
+    const r0 = getValueAtTime(rpm, tps[k-1].x), r1 = getValueAtTime(rpm, tps[seriesEnd].x);
+    if (r0 === null || r1 === null || Math.min(r0, r1) <= MIN_RPM) { k = seriesEnd; continue; }
+    if (r1 < r0 - FLAP_RPM_DROP) { k = seriesEnd; continue; }
+
+    // Дополнительный признак: при реальном хлопке дросселя RPM тоже колеблются
+    const rpmPts = sliceRange(rpm, tps[k-1].x, tps[seriesEnd].x);
+    let rpmVariation = 0;
+    if (rpmPts.length >= 2) {
+      const rpMin = Math.min(...rpmPts.map(p => p.y));
+      const rpMax = Math.max(...rpmPts.map(p => p.y));
+      rpmVariation = rpMax - rpMin;
+    }
+    // Если RPM слишком стабильны — это, вероятно, шум датчика, а не реальное хлопание
+    if (rpmVariation < FLAP_RPM_VARIATION_MIN && rpmPts.length >= 3) { k = seriesEnd; continue; }
+
+    // Средняя точка серии — для маркера
+    const midIdx = Math.floor((k - 1 + seriesEnd) / 2);
+    const peakPoint = tps[midIdx];
+
+    out.push({
+      x: peakPoint.x,
+      y: peakPoint.y,
+      target: tpsName,
+      oscillations,
+      amplitude: Math.round(Math.max(Math.abs(d1), Math.abs(d2))),
+      rpmVariation: Math.round(rpmVariation),
+      duration: parseFloat(dt.toFixed(2))
+    });
+
+    k = seriesEnd + 1;
   }
   return dedup(out, MERGE_FLAP);
 }
@@ -391,17 +560,36 @@ function dedup(events, gap) {
   return out;
 }
 const TURBO_LABELS = { underboost: 'недодув', drop: 'сброс наддува', spike: 'скачок наддува' };
+function severityLabel(sev) {
+  if (sev >= 50) return '🔴';
+  if (sev >= 20) return '🟠';
+  if (sev >= 10) return '🟡';
+  return '';
+}
 function renderEventsPanel() {
   const panel = document.getElementById('eventsPanel'), list = document.getElementById('eventsList');
   const events = [];
+  const retardCounts = { critical: 0, dangerous: 0, mild: 0 };
   dangerRetards.forEach(e => {
-    let text = 'откат ' + e.label + ' ' + formatValue(e.y) + '° @ ' + e.rpm + ' rpm';
-    if (e.tps !== null) text += ' · ДПДЗ ' + e.tps + '%' + (e.wot ? ' (тапка!)' : '');
+    const sev = e.severity || 0;
+    let text = severityLabel(sev) + ' откат ' + e.label + ' ' + formatValue(e.y) + '° @ ' + e.rpm + ' rpm';
+    if (e.tps !== null) text += ' · ДПДЗ ' + e.tps + '%' + (e.wot ? ' (тапка в пол!)' : '');
     if (e.load !== null) text += ' · нагр ' + e.load + '%';
-    if (e.knockConfirmed) text += ' · ⚡детонация';
+    if (e.duration > 0) text += ' · ' + e.duration.toFixed(2) + 'с';
+    if (e.knockConfirmed) text += ' · ⚡детонация!';
+    if (sev >= 50) retardCounts.critical++;
+    else if (sev >= 20) retardCounts.dangerous++;
+    else if (sev >= 10) retardCounts.mild++;
     events.push({ x: e.x, type: 'retard', target: e.target, text: text });
   });
-  throttleFlaps.forEach(e => events.push({ x: e.x, type: 'flap', target: e.target, text: 'хлопание дросселя ' + formatValue(e.y) + '%' }));
+  throttleFlaps.forEach(e => {
+    let text = 'хлопание дросселя ' + formatValue(e.y) + '%';
+    if (e.oscillations) text += ' (' + e.oscillations + ' циклов)';
+    if (e.amplitude) text += ' · ампл. ' + e.amplitude + '%';
+    if (e.rpmVariation) text += ' · RPM ±' + e.rpmVariation;
+    if (e.duration) text += ' · ' + e.duration.toFixed(1) + 'с';
+    events.push({ x: e.x, type: 'flap', target: e.target, text: text });
+  });
   turboEvents.forEach(e => events.push({ x: e.x, type: 'turbo', target: e.target, text: TURBO_LABELS[e.kind] + ' ' + formatValue(e.y) + ' bar' }));
   knockEvents.forEach(e => {
     let text = '⚡ детонация';
@@ -414,7 +602,12 @@ function renderEventsPanel() {
   panel.style.display = 'block'; panel.classList.remove('open');
   document.getElementById('eventsToggleHint').textContent = 'клик — развернуть';
   const parts = [];
-  if (dangerRetards.length) parts.push('откатов: ' + dangerRetards.length);
+  if (dangerRetards.length) {
+    let rText = 'откатов: ' + dangerRetards.length;
+    if (retardCounts.critical) rText += ' 🔴' + retardCounts.critical;
+    if (retardCounts.dangerous) rText += ' 🟠' + retardCounts.dangerous;
+    parts.push(rText);
+  }
   if (knockEvents.length) parts.push('детонация: ' + knockEvents.length);
   if (throttleFlaps.length) parts.push('хлопков: ' + throttleFlaps.length);
   if (turboEvents.length) parts.push('турбо: ' + turboEvents.length);
