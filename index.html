@@ -135,7 +135,7 @@
     margin-top: 6px; overflow-x: auto; white-space: nowrap;
   }
 
-  /* ===== ПАНЕЛЬ ОПАСНЫХ СОБЫТИЙ ===== */
+  /* ===== ПАНЕЛЬ ОПАСНЫХ СОБЫТИЙ (сворачиваемая) ===== */
   .events-panel {
     position: relative; z-index: 1;
     margin: 8px 0 4px;
@@ -145,10 +145,26 @@
     animation: panelIn .35s ease;
   }
   @keyframes panelIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  .events-head { font-size: 12.5px; color: #e8b4b8; margin-bottom: 8px; }
+  .events-head {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: none; border: none; padding: 0; cursor: pointer;
+    font: inherit; font-size: 12.5px; color: #e8b4b8; text-align: left;
+    transition: color .15s;
+  }
+  .events-head:hover { color: #ffd4d7; }
   .events-head b { color: #FF8A80; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
-  .events-hint { color: #8a7076; font-size: 11px; margin-left: 8px; }
-  .events-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 104px; overflow-y: auto; }
+  .events-caret {
+    display: inline-block; font-size: 10px; color: #FF8A80;
+    transition: transform .2s ease;
+  }
+  .events-panel.open .events-caret { transform: rotate(90deg); }
+  .events-hint { color: #8a7076; font-size: 11px; margin-left: auto; }
+  .events-list {
+    display: none; flex-wrap: wrap; gap: 6px;
+    max-height: 104px; overflow-y: auto; margin-top: 9px;
+  }
+  .events-panel.open .events-list { display: flex; animation: listIn .25s ease; }
+  @keyframes listIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
   .event-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 11px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -269,10 +285,10 @@
 
       <h4>Анализатор опасных событий</h4>
       <ul>
-        <li><b>Откат УОЗ</b>: отрицательный УОЗ при <b>ровных или растущих</b> оборотах — откат под нагрузкой (красный маркер «откат!»). Если обороты падают — это обычный сброс газа или переключение передачи.</li>
+        <li><b>Откат УОЗ</b>: отрицательный УОЗ при <b>ровных или растущих</b> оборотах — откат под нагрузкой (красный маркер «откат!»).</li>
         <li><b>Хлопание дросселя</b>: скачки ДПДЗ в зоне ~50–80% при ровных/растущих оборотах — оранжевый маркер «хлопок».</li>
-        <li>Все события за весь лог — в панели под шапкой. Клик по событию переносит к этому моменту и подсвечивает график.</li>
-        <li>Анализатор работает, только если в логе есть обороты + УОЗ (и ДПДЗ для хлопков).</li>
+        <li>Анализ идёт <b>только при оборотах &gt; 1000</b> — на холостом ходу (700–800) отрицательный УОЗ нормален и не помечается.</li>
+        <li>Панель событий под шапкой свёрнута — кликните по ней, чтобы развернуть. Клик по событию переносит к этому моменту и подсвечивает график.</li>
       </ul>
 
       <h4>Перестановка графиков</h4>
@@ -303,9 +319,11 @@
 </div>
 
 <div class="events-panel" id="eventsPanel" style="display:none">
-  <div class="events-head">⚠ Анализатор опасных событий — найдено: <b id="eventsCount"></b>
-    <span class="events-hint">клик по событию — переход к этому моменту</span>
-  </div>
+  <button class="events-head" id="eventsHead" type="button">
+    <span class="events-caret">▶</span>
+    <span>⚠ Анализатор опасных событий — найдено: <b id="eventsCount"></b></span>
+    <span class="events-hint" id="eventsToggleHint">клик — развернуть</span>
+  </button>
   <div class="events-list" id="eventsList"></div>
 </div>
 
@@ -359,6 +377,7 @@ const PARAMS = [
 const EXTRA_COLORS = ['#8AB4F8','#F28B82','#81C995','#FDD663','#C58AF9','#78D9EC','#F6AEA9','#A8DAB5','#FFB77D','#D7A9E3','#AECBFA','#FDE293'];
 
 // Пороги анализатора
+const MIN_RPM = 1000;         // ниже — холостой ход, анализ не проводим
 const RPM_DROP_EPS = 15;      // падение оборотов больше этого = "падают" (норма)
 const FLAP_ZONE = [45, 85];   // зона ДПДЗ, в которой ищем хлопки (~50-80)
 const FLAP_AMP = 8;           // минимальное плечо зигзага ДПДЗ, %
@@ -438,6 +457,14 @@ document.getElementById('timePosition').addEventListener('input', e => {
   updateControls(); scheduleRedraw();
 });
 document.getElementById('fixedScale').addEventListener('change', e => { saveSetting('fixedScale', e.target.checked ? '1' : '0'); scheduleRedraw(); });
+
+// Сворачивание панели событий
+document.getElementById('eventsHead').addEventListener('click', () => {
+  const panel = document.getElementById('eventsPanel');
+  panel.classList.toggle('open');
+  document.getElementById('eventsToggleHint').textContent =
+    panel.classList.contains('open') ? 'клик — свернуть' : 'клик — развернуть';
+});
 
 window.addEventListener('wheel', e => {
   if (!e.shiftKey || totalTime <= 0) return;
@@ -540,6 +567,8 @@ function parseAndDraw(text, fileName) {
 }
 
 // ===== АНАЛИЗАТОР ОПАСНЫХ СОБЫТИЙ =====
+// Работает только при оборотах > MIN_RPM: на холостом ходу (700-800)
+// отрицательный УОЗ — нормальная работа РХХ, помечать его не нужно.
 function runAnalysis() {
   dangerRetards = [];
   throttleFlaps = [];
@@ -548,21 +577,23 @@ function runAnalysis() {
   const rpm = allData['Обороты двигателя'];
   const tps = allData['Положение дроссельной заслонки'];
 
-  // Откат УОЗ: отрицательный УОЗ + обороты НЕ падают afterwards
+  // Откат УОЗ: минусовой УОЗ на оборотах > 1000 + обороты НЕ падают после
   if (uoz && uoz.length >= 2 && rpm && rpm.length >= 2) {
     let j = 0;
     for (let k = 0; k < uoz.length; k++) {
       const p = uoz[k];
       if (p.y >= 0) continue;
+      const rpmAt = getValueAtTime(rpm, p.x);
+      if (rpmAt === null || rpmAt <= MIN_RPM) continue; // холостой ход — пропуск
       while (j < rpm.length && rpm[j].x <= p.x) j++;
       const a = rpm[j], b = rpm[j + 1];
       if (!a || !b) continue;
       const dropping = b.y < a.y - RPM_DROP_EPS;
-      if (!dropping) dangerRetards.push({ x: p.x, y: p.y, rpmA: a.y, rpmB: b.y });
+      if (!dropping) dangerRetards.push({ x: p.x, y: p.y, rpm: Math.round(rpmAt) });
     }
   }
 
-  // Хлопание дросселя: зигзаг ДПДЗ в зоне 45-85% при неповороте оборотов
+  // Хлопание дросселя: зигзаг ДПДЗ в зоне 45-85% при оборотах > 1000 и без их падения
   if (tps && tps.length >= 3 && rpm && rpm.length >= 2) {
     for (let k = 1; k < tps.length - 1; k++) {
       const a = tps[k - 1], b = tps[k], c = tps[k + 1];
@@ -573,6 +604,7 @@ function runAnalysis() {
       const r0 = getValueAtTime(rpm, a.x);
       const r1 = getValueAtTime(rpm, c.x);
       if (r0 === null || r1 === null) continue;
+      if (Math.min(r0, r1) <= MIN_RPM) continue; // холостой ход — пропуск
       if (r1 >= r0 - FLAP_RPM_DROP) throttleFlaps.push({ x: b.x, y: b.y });
     }
   }
@@ -584,13 +616,15 @@ function renderEventsPanel() {
   const panel = document.getElementById('eventsPanel');
   const list = document.getElementById('eventsList');
   const events = [];
-  dangerRetards.forEach(e => events.push({ x: e.x, type: 'retard', text: 'откат УОЗ ' + formatValue(e.y) + '°' }));
+  dangerRetards.forEach(e => events.push({ x: e.x, type: 'retard', text: 'откат УОЗ ' + formatValue(e.y) + '° @ ' + e.rpm + ' rpm' }));
   throttleFlaps.forEach(e => events.push({ x: e.x, type: 'flap', text: 'хлопание дросселя ' + formatValue(e.y) + '%' }));
 
   if (!events.length) { panel.style.display = 'none'; return; }
   events.sort((a, b) => a.x - b.x);
 
   panel.style.display = 'block';
+  panel.classList.remove('open');
+  document.getElementById('eventsToggleHint').textContent = 'клик — развернуть';
   document.getElementById('eventsCount').textContent =
     events.length + '  (откатов: ' + dangerRetards.length + ', хлопков: ' + throttleFlaps.length + ')';
   list.innerHTML = '';
