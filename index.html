@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Анализатор лога</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(1100px 480px at 85% -10%, rgba(76,175,80,.07), transparent 60%),
+      radial-gradient(800px 400px at 0% 0%, rgba(66,165,245,.05), transparent 55%),
+      linear-gradient(#15181d, #101317);
+    background-attachment: fixed;
+    color: #e8eaed;
+    min-height: 100vh;
+    padding: 0 14px 14px;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 7px 2px;
+    background: linear-gradient(#181c22, #151920);
+    border-bottom: 1px solid #2a313b;
+    box-shadow: 0 6px 18px rgba(0,0,0,.45);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; margin-right: 4px; min-width: 0; }
+  .brand .logo { font-size: 17px; filter: drop-shadow(0 0 6px rgba(76,175,80,.5)); }
+  .brand b { font-size: 14.5px; font-weight: 800; letter-spacing: .4px; white-space: nowrap; }
+  .file-info {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 10.5px; color: #8b95a3;
+    max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .btn {
+    padding: 5px 11px; background: #232a33; color: #cfd6df;
+    border: 1px solid #333c48; border-radius: 6px; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; white-space: nowrap;
+    transition: all .15s ease;
+  }
+  .btn:hover { background: #2c3540; border-color: #4CAF50; color: #fff; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0) scale(.96); }
+  .btn-add {
+    width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content:center;
+    background: linear-gradient(180deg, #5cbf60, #3f9e43); color: #fff;
+    border: none; border-radius: 7px; font-size: 20px; font-weight: 700; line-height: 1;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(76,175,80,.35); transition: all .15s ease;
+  }
+  .btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(76,175,80,.5); }
+  .btn-add:active { transform: scale(.93); }
+  .btn-add input { display: none; }
+  .sep { width: 1px; height: 22px; background: #333c48; }
+  .slider-group { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 200px; }
+  .slider-group label {
+    font-size: 10px; color: #8b95a3; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; cursor: help;
+  }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; min-width: 90px; max-width: 320px; height: 4px; border-radius: 2px;
+    background: #2c3540; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: #4CAF50; border: 2px solid #10131a; transition: box-shadow .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(76,175,80,.22); }
+  input[type=range]::-moz-range-thumb {
+    width: 11px; height: 11px; border-radius: 50%; background: #4CAF50; border: 2px solid #10131a;
+  }
+  .readout {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 11px; color: #ffc966; min-width: 92px; text-align: center;
+    background: #1b2027; border: 1px solid #2a313b; border-radius: 5px; padding: 3px 6px;
+  }
+  .chk {
+    display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #aeb7c2;
+    cursor: pointer; margin-left: auto; user-select: none; white-space: nowrap; transition: color .15s;
+  }
+  .chk:hover { color: #fff; }
+  .chk input { accent-color: #4CAF50; width: 14px; height: 14px; cursor: pointer; }
+  #charts { position: relative; z-index: 1; }
+  .chart-box {
+    background: linear-gradient(180deg, #1d232b, #1a1f27);
+    border: 1px solid #262e39; border-radius: 7px;
+    margin: 4px 0; padding: 3px; transition: border-color .2s;
+  }
+  .chart-box:hover { border-color: #3d4a5c; }
+  .canvas-wrapper { position: relative; }
+  canvas { display: block; width: 100%; }
+  .overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+  .main-canvas { cursor: crosshair; border-radius: 5px; }
+  .empty {
+    position: relative; z-index: 1;
+    margin: 70px auto; max-width: 440px; text-align: center; color: #6b7684;
+    border: 2px dashed #2c3540; border-radius: 12px; padding: 46px 24px;
+  }
+  .empty .big { font-size: 42px; margin-bottom: 12px; }
+  .empty b { color: #cfd6df; font-size: 16px; display: block; margin-bottom: 6px; }
+  .drop-active::after {
+    content: '⬇ Отпустите CSV-файл';
+    position: fixed; inset: 10px; z-index: 300;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(16,19,23,.87);
+    border: 2px dashed #4CAF50; border-radius: 12px;
+    color: #4CAF50; font-size: 22px; font-weight: 700;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <span class="logo">📊</span>
+    <b>ЛОГ</b>
+    <span class="file-info" id="fileInfo">файл не загружен</span>
+  </div>
+  <label class="btn-add" title="Открыть CSV (или перетащите файл в окно)">
+    +<input type="file" id="fileInput" accept=".csv">
+  </label>
+  <div class="sep"></div>
+  <button class="btn" id="zoomIn" title="Приблизить">🔍+</button>
+  <button class="btn" id="zoomOut" title="Отдалить">🔍−</button>
+  <button class="btn" id="resetZoom" title="Сброс">Сброс</button>
+  <div class="sep"></div>
+  <div class="slider-group">
+    <label>Окно</label>
+    <input type="range" id="windowSize" min="5" max="300" value="30" step="5">
+    <span class="readout" id="windowSizeDisplay">30с</span>
+  </div>
+  <div class="slider-group">
+    <label title="Также работает Shift + колесо мыши">Позиция</label>
+    <input type="range" id="timePosition" min="0" max="100" value="0" step="0.1">
+    <span class="readout" id="timePositionDisplay">0–30s</span>
+  </div>
+  <label class="chk" title="Минимум/максимум оси Y по всему логу, а не по видимому окну">
+    <input type="checkbox" id="fixedScale">Фикс. масштаб
+  </label>
+</div>
+
+<div id="charts"></div>
+
+<div class="empty" id="empty">
+  <div class="big">📂</div>
+  <b>Загрузите CSV-лог</b>
+  Нажмите «+» или просто перетащите файл в окно<br>
+  <span style="font-size:12px">Позиция: ползунок или Shift + колесо мыши</span>
+</div>
+
+<script>
+const MONO = 'ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace';
+const SANS = '"Segoe UI", system-ui, sans-serif';
+
+const PARAMS = [
+  { name: 'Обороты двигателя', unit: 'rpm', color: '#FFC107', minVal: 0 },
+  { name: 'Угол опережения зажигания', unit: '°', color: '#AB47BC', zeroLine: true, negColor: '#FF5252' },
+  { name: 'Кратковременная коррекция - Блок 1', unit: '%', color: '#26A69A', anomaly: [-15, 15], anomalyColor: '#FF5252' },
+  { name: 'Давление во впускном коллекторе (абсолютное)', unit: 'kPa', color: '#FF7043', minVal: 0 },
+  { name: 'Температура всасываемого воздуха', unit: '℃', color: '#EC407A', alertLine: 45 },
+  { name: 'Положение дроссельной заслонки', unit: '%', color: '#66BB6A', minVal: 0, maxVal: 100 },
+  { name: 'Скорость автомобиля', unit: 'km/h', color: '#42A5F5', minVal: 0 },
+  { name: 'Ускорение', unit: 'g', color: '#7E57C2' },
+  { name: 'Массовый расход воздуха', unit: 'g/s', color: '#26C6DA', minVal: 0 },
+  { name: 'Соотношение топливо/воздух', unit: '', color: '#FFA726' },
+  { name: 'Соотношение топливо/воздух (AFR)', unit: '', color: '#FFA726' },
+  { name: 'Температура охлаждающей жидкости', unit: '℃', color: '#EF5350' },
+  { name: 'Расчетный наддув', unit: 'bar', color: '#FF8A65' }
+];
+
+const CHART_H = 176;
+let allData = {}, totalTime = 0, windowSize = 30, timePosition = 0;
+let canvasElements = [], mouseX = -1, rafPending = false;
+const dpr = window.devicePixelRatio || 1;
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => parseAndDraw(ev.target.result, file.name);
+  reader.readAsText(file);
+}
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+let dragDepth = 0;
+document.addEventListener('dragenter', e => { e.preventDefault(); if (++dragDepth === 1) document.body.classList.add('drop-active'); });
+document.addEventListener('dragleave', e => { e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('drop-active'); } });
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-active');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+const wsSlider = document.getElementById('windowSize');
+document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.max(5, windowSize * 0.7); updateControls(); scheduleRedraw(); });
+document.getElementById('zoomOut').addEventListener('click', () => { windowSize = Math.min(parseFloat(wsSlider.max), windowSize * 1.4); updateControls(); scheduleRedraw(); });
+document.getElementById('resetZoom').addEventListener('click', () => { windowSize = 30; timePosition = 0; updateControls(); scheduleRedraw(); });
+wsSlider.addEventListener('input', e => { windowSize = parseFloat(e.target.value); updateControls(); scheduleRedraw(); });
+document.getElementById('timePosition').addEventListener('input', e => {
+  timePosition = parseFloat(e.target.value) / 100 * Math.max(0, totalTime - windowSize);
+  updateControls(); scheduleRedraw();
+});
+document.getElementById('fixedScale').addEventListener('change', () => scheduleRedraw());
+
+window.addEventListener('wheel', e => {
+  if (!e.shiftKey || totalTime <= 0) return;
+  e.preventDefault();
+  const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  const norm = raw * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 120 : 1);
+  const maxPos = Math.max(0, totalTime - windowSize);
+  timePosition = Math.max(0, Math.min(maxPos, timePosition + norm * windowSize / 600));
+  updateControls();
+  scheduleRedraw();
+}, { passive: false });
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  if (!totalTime) return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(redrawCharts, 120);
+});
+
+function scheduleRedraw() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => { rafPending = false; redrawCharts(); });
+}
+
+function updateControls() {
+  const maxPos = Math.max(0, totalTime - windowSize);
+  timePosition = Math.max(0, Math.min(timePosition, maxPos));
+  wsSlider.value = windowSize;
+  document.getElementById('windowSizeDisplay').textContent = formatWin(windowSize);
+  document.getElementById('timePosition').value = maxPos ? (timePosition / maxPos) * 100 : 0;
+  document.getElementById('timePositionDisplay').textContent =
+    timePosition.toFixed(0) + '–' + (timePosition + windowSize).toFixed(0) + 's';
+}
+
+// ===== ПАРСЕР (оригинальная стабильная версия) =====
+function parseAndDraw(text, fileName) {
+  allData = {};
+  PARAMS.forEach(p => allData[p.name] = []);
+
+  const tokens = text.split(/[;\r\n]+/).map(t => t.replace(/"/g, '').trim()).filter(t => t.length);
+  let i = 0, count = 0;
+  while (i + 3 < tokens.length) {
+    const ts = parseFloat(tokens[i].replace(',', '.'));
+    if (isNaN(ts)) { i++; continue; }
+    const name = tokens[i + 1];
+    const val = parseFloat(tokens[i + 2].replace(',', '.'));
+    if (allData[name] !== undefined && !isNaN(val)) {
+      allData[name].push({ x: ts, y: val });
+      count++;
+      i += 4;
+    } else i++;
+  }
+
+  if (!count) {
+    document.getElementById('fileInfo').textContent = '⚠ параметры не найдены';
+    return;
+  }
+
+  let minT = Infinity, maxT = 0;
+  PARAMS.forEach(p => {
+    const arr = allData[p.name];
+    arr.sort((a, b) => a.x - b.x);
+    arr.forEach(pt => { if (pt.x < minT) minT = pt.x; if (pt.x > maxT) maxT = pt.x; });
+  });
+  PARAMS.forEach(p => allData[p.name].forEach(pt => pt.x -= minT));
+  totalTime = maxT - minT;
+
+  wsSlider.max = Math.max(300, Math.ceil(totalTime));
+
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('fileInfo').textContent =
+    fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек';
+
+  timePosition = 0;
+  updateControls();
+  redrawCharts();
+}
+
+function redrawCharts() {
+  const container = document.getElementById('charts');
+  container.innerHTML = '';
+  canvasElements = [];
+  const tStart = timePosition, tEnd = timePosition + windowSize;
+  const fixed = document.getElementById('fixedScale').checked;
+
+  PARAMS.forEach(param => {
+    const pts = allData[param.name];
+    if (!pts || pts.length < 2) return;
+
+    const visiblePts = pts.filter(p => p.x >= tStart && p.x <= tEnd);
+
+    const extendedPts = [];
+    const sv = getValueAtTime(pts, tStart);
+    if (sv !== null) extendedPts.push({ x: tStart, y: sv, isBoundary: true });
+    visiblePts.forEach(p => extendedPts.push({ x: p.x, y: p.y, isBoundary: false }));
+    const ev = getValueAtTime(pts, tEnd);
+    if (ev !== null) extendedPts.push({ x: tEnd, y: ev, isBoundary: true });
+    if (extendedPts.length < 2) return;
+
+    let avgInterval = 0;
+    if (visiblePts.length > 1) {
+      avgInterval = (visiblePts[visiblePts.length - 1].x - visiblePts[0].x) / (visiblePts.length - 1);
+    }
+
+    let yMin, yMax;
+    if (fixed) {
+      const mm = minMax(pts);
+      yMin = param.minVal !== undefined ? param.minVal : mm.min;
+      yMax = param.maxVal !== undefined ? param.maxVal : mm.max;
+    } else {
+      const mm = minMax(visiblePts.length ? visiblePts : extendedPts);
+      yMin = mm.min; yMax = mm.max;
+    }
+
+    // Для параметров с коридором аномалий — расширяем диапазон,
+    // чтобы обе границы (например -15 и +15) были видны всегда
+    if (param.anomaly) {
+      yMin = Math.min(yMin, param.anomaly[0]);
+      yMax = Math.max(yMax, param.anomaly[1]);
+    }
+
+    const box = document.createElement('div');
+    box.className = 'chart-box';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'canvas-wrapper';
+    box.appendChild(wrapper);
+    container.appendChild(box);
+
+    const W = wrapper.clientWidth || 800;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'main-canvas';
+    canvas.width = W * dpr; canvas.height = CHART_H * dpr;
+    canvas.style.height = CHART_H + 'px';
+    const overlay = document.createElement('canvas');
+    overlay.className = 'overlay';
+    overlay.width = W * dpr; overlay.height = CHART_H * dpr;
+    overlay.style.height = CHART_H + 'px';
+    wrapper.appendChild(canvas);
+    wrapper.appendChild(overlay);
+
+    const el = {
+      canvas, overlay, param, pts: extendedPts, total: pts.length,
+      wholeMax: minMax(pts).max,
+      tStart, tEnd, avgInterval, yMin, yMax, fixed
+    };
+    canvasElements.push(el);
+    drawChart(el);
+
+    canvas.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      updateOverlay();
+    });
+    canvas.addEventListener('mouseleave', () => { mouseX = -1; updateOverlay(); });
+  });
+}
+
+function getScale(el, W, H) {
+  const pad = { l: 48, r: 10, t: 24, b: 16 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const yRange = (el.yMax - el.yMin) || 1;
+  const yPad = yRange * 0.06;
+  const tickMin = el.fixed ? el.yMin : el.yMin - yPad;
+  const tickMax = el.fixed ? el.yMax : el.yMax + yPad;
+  const yTicks = getNiceTicks(tickMin, tickMax, 5);
+  const dYMin = yTicks[0], dYMax = yTicks[yTicks.length - 1];
+  return { pad, pw, ph, yTicks, dYMin, dYMax, dYRange: (dYMax - dYMin) || 1 };
+}
+
+function drawChart(el) {
+  const { canvas, param, pts, total, tStart, tEnd, avgInterval, wholeMax } = el;
+  const ctx = canvas.getContext('2d');
+  ctx.save(); ctx.scale(dpr, dpr);
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const s = getScale(el, W, H);
+  const { pad, pw, ph, yTicks, dYMin, dYMax, dYRange } = s;
+  const xTicks = getNiceTicks(tStart, tEnd, Math.max(4, Math.min(10, Math.round(pw / 140))));
+
+  ctx.fillStyle = '#161b22';
+  ctx.fillRect(0, 0, W, H);
+
+  // Заголовок
+  ctx.fillStyle = param.color;
+  ctx.fillRect(8, 4.5, 4, 13);
+  ctx.font = '700 15px ' + SANS;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillText(param.name, 17, 16);
+  if (param.unit) {
+    const nw = ctx.measureText(param.name).width;
+    ctx.font = '11px ' + MONO;
+    ctx.fillStyle = '#75808e';
+    ctx.fillText(param.unit, 23 + nw, 16);
+  }
+
+  // Статистика
+  const realPts = pts.filter(p => !p.isBoundary);
+  const fullCoverage = realPts.length === total && total > 0;
+  let stats = realPts.length + '/' + total + ' ' + plural(realPts.length);
+  if (avgInterval > 0) stats += ' · Δt ' + avgInterval.toFixed(2) + 's';
+  if (realPts.length) {
+    const mm = minMax(realPts);
+    stats += ' · ' + formatValue(mm.min) + '…' + formatValue(mm.max);
+  }
+  ctx.font = '13.5px ' + MONO;
+  ctx.textAlign = 'right';
+  ctx.fillStyle = fullCoverage ? '#9fd8a4' : '#7d9b80';
+  ctx.fillText(stats, W - 8, 16);
+
+  if (param.anomaly && realPts.length) {
+    const [lo, hi] = param.anomaly;
+    const nAnom = realPts.reduce((n, p) => n + ((p.y < lo || p.y > hi) ? 1 : 0), 0);
+    if (nAnom) {
+      const sw = ctx.measureText(stats).width;
+      ctx.fillStyle = '#FF5252';
+      ctx.fillText('⚠' + nAnom, W - 12 - sw, 16);
+    }
+  }
+
+  // Сетка Y
+  ctx.font = '9px ' + MONO;
+  yTicks.forEach(v => {
+    const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
+    ctx.strokeStyle = 'rgba(255,255,255,.055)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = '#7a8594'; ctx.textAlign = 'right';
+    ctx.fillText(tickLabel(v), pad.l - 4, y + 3);
+  });
+
+  // Сетка X
+  xTicks.forEach(v => {
+    const x = pad.l + pw * (v - tStart) / (tEnd - tStart);
+    if (x < pad.l - 1 || x > W - pad.r + 1) return;
+    ctx.strokeStyle = 'rgba(255,255,255,.045)';
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+    ctx.fillStyle = '#7a8594'; ctx.textAlign = 'center';
+    ctx.fillText((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 's', x, H - 4);
+  });
+
+  // === СПЕЦИАЛЬНЫЕ ЛИНИИ (тонкие, прерывистые) ===
+
+  // Линия нуля (УОЗ)
+  if (param.zeroLine && dYMin < 0 && dYMax > 0) {
+    const y0 = pad.t + ph * (1 - (0 - dYMin) / dYRange);
+    ctx.strokeStyle = 'rgba(255,82,82,0.7)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, y0); ctx.lineTo(W - pad.r, y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Коридор нормы (коррекция): обе границы -15 и +15
+  if (param.anomaly) {
+    ctx.strokeStyle = 'rgba(255,82,82,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    param.anomaly.forEach(v => {
+      if (v >= dYMin && v <= dYMax) {
+        const y = pad.t + ph * (1 - (v - dYMin) / dYRange);
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+      }
+    });
+    ctx.setLineDash([]);
+  }
+
+  // Пороговая линия (t° впуска 45℃)
+  if (param.alertLine !== undefined && wholeMax >= param.alertLine &&
+      dYMin <= param.alertLine && dYMax >= param.alertLine) {
+    const ya = pad.t + ph * (1 - (param.alertLine - dYMin) / dYRange);
+    ctx.strokeStyle = 'rgba(255,82,82,0.7)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, ya); ctx.lineTo(W - pad.r, ya); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '700 9px ' + MONO;
+    ctx.fillStyle = '#FF8A80';
+    ctx.textAlign = 'right';
+    ctx.fillText('⚠ ' + param.alertLine + (param.unit || ''), W - pad.r - 4, ya - 4);
+  }
+
+  // Линия данных
+  ctx.strokeStyle = param.color;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  pts.forEach((p, i) => {
+    const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
+    const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Заливка
+  const firstX = pad.l + pw * (pts[0].x - tStart) / (tEnd - tStart);
+  const lastX = pad.l + pw * (pts[pts.length - 1].x - tStart) / (tEnd - tStart);
+  ctx.lineTo(lastX, pad.t + ph);
+  ctx.lineTo(firstX, pad.t + ph);
+  ctx.closePath();
+  ctx.fillStyle = param.color + '1f';
+  ctx.fill();
+
+  // Маркеры
+  if (realPts.length && realPts.length <= 1500) {
+    const baseR = realPts.length > 500 ? 2.3 : 3;
+    realPts.forEach(p => {
+      const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
+      const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
+      let fill = param.color, stroke = '#0e1116', r = baseR;
+
+      const isAnomaly = param.anomaly && (p.y < param.anomaly[0] || p.y > param.anomaly[1]);
+      if (isAnomaly) {
+        fill = param.anomalyColor; stroke = '#fff'; r = baseR + 1.5;
+        ctx.fillStyle = fill + '3d';
+        ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.fill();
+      } else if (param.negColor && p.y < 0) {
+        fill = param.negColor; stroke = '#fff';
+      }
+
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    });
+  }
+
+  ctx.restore();
+}
+
+function updateOverlay() {
+  canvasElements.forEach(el => {
+    const { overlay, param, pts, tStart, tEnd } = el;
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (mouseX < 0) return;
+    ctx.save(); ctx.scale(dpr, dpr);
+
+    const W = overlay.clientWidth, H = overlay.clientHeight;
+    const s = getScale(el, W, H);
+    const { pad, pw, ph, dYMin, dYRange } = s;
+
+    if (mouseX >= pad.l && mouseX <= W - pad.r) {
+      const time = tStart + (mouseX - pad.l) / pw * (tEnd - tStart);
+
+      ctx.strokeStyle = 'rgba(255,255,255,.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(mouseX, pad.t); ctx.lineTo(mouseX, pad.t + ph); ctx.stroke();
+      ctx.setLineDash([]);
+
+      const value = getValueAtTime(pts, time);
+      if (value !== null) {
+        const y = pad.t + ph * (1 - (value - dYMin) / dYRange);
+
+        let ptColor = param.color;
+        if (param.anomaly && (value < param.anomaly[0] || value > param.anomaly[1])) ptColor = param.anomalyColor;
+        else if (param.negColor && value < 0) ptColor = param.negColor;
+
+        ctx.fillStyle = ptColor;
+        ctx.beginPath(); ctx.arc(mouseX, y, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+
+        const label = time.toFixed(1) + 's · ' + formatValue(value) + (param.unit ? ' ' + param.unit : '');
+        ctx.font = '700 11.5px ' + SANS;
+        const tw = ctx.measureText(label).width;
+        let lx = mouseX + 9, ly = y - 8;
+        if (lx + tw + 10 > W - pad.r) lx = mouseX - tw - 19;
+        if (ly < pad.t + 12) ly = y + 18;
+
+        ctx.fillStyle = 'rgba(10,13,17,.92)';
+        ctx.strokeStyle = ptColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(lx - 5, ly - 11, tw + 10, 17, 3);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, lx, ly + 1);
+      }
+    }
+    ctx.restore();
+  });
+}
+
+function minMax(arr) {
+  let min = Infinity, max = -Infinity;
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i].y;
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return { min, max };
+}
+
+function getValueAtTime(pts, time) {
+  if (!pts.length) return null;
+  if (time <= pts[0].x) return pts[0].y;
+  if (time >= pts[pts.length - 1].x) return pts[pts.length - 1].y;
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (pts[i].x <= time && pts[i + 1].x >= time) {
+      const dx = pts[i + 1].x - pts[i].x;
+      if (dx <= 0) return pts[i + 1].y;
+      const t = (time - pts[i].x) / dx;
+      return pts[i].y + t * (pts[i + 1].y - pts[i].y);
+    }
+  }
+  return null;
+}
+
+function plural(n) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return 'точка';
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'точки';
+  return 'точек';
+}
+
+function formatValue(v) {
+  const a = Math.abs(v);
+  if (a < 0.01) return '0';
+  if (a >= 100) return v.toFixed(0);
+  if (a >= 1) return v.toFixed(1);
+  return v.toFixed(2);
+}
+
+function tickLabel(v) {
+  if (Math.abs(v) < 1e-9) return '0';
+  const a = Math.abs(v);
+  if (a >= 100) return v.toFixed(0);
+  if (a >= 1) return String(Math.round(v * 10) / 10);
+  return String(Math.round(v * 100) / 100);
+}
+
+function formatDur(t) {
+  return t >= 60 ? Math.floor(t / 60) + 'м ' + Math.round(t % 60) + 'с' : t.toFixed(0) + 'с';
+}
+
+function formatWin(s) {
+  s = Math.round(s);
+  return s >= 60 ? Math.floor(s / 60) + 'м ' + (s % 60) + 'с' : s + 'с';
+}
+
+function niceNum(range, round) {
+  const exp = Math.floor(Math.log10(range));
+  const frac = range / Math.pow(10, exp);
+  let nice;
+  if (round) nice = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10;
+  else nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10;
+  return nice * Math.pow(10, exp);
+}
+
+function getNiceTicks(min, max, target) {
+  if (min === max) return [min];
+  const range = niceNum(max - min, false);
+  const spacing = niceNum(range / (target - 1), true);
+  const nMin = Math.floor(min / spacing) * spacing;
+  const nMax = Math.ceil(max / spacing) * spacing;
+  const ticks = [];
+  for (let v = nMin; v <= nMax + 0.5 * spacing; v += spacing) ticks.push(parseFloat(v.toFixed(10)));
+  return ticks;
+}
+</script>
+</body>
+</html>
