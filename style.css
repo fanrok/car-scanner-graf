@@ -181,6 +181,7 @@ kbd {
   transform: scale(1.02);
   opacity: .9;
   pointer-events: none;
+  visibility: hidden;
 }
 .chart-box.placeholder {
   background: rgba(76,175,80,.12);
