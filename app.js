@@ -865,6 +865,7 @@ function attachChartListeners(el) {
 }
 
 // Глобальные обработчики перетаскивания (захват указателя)
+let chartDragPlaceholder = null;
 window.addEventListener('pointermove', e => {
   if (!dragState || e.pointerId !== dragState.id) return;
   const box = dragState.box;
@@ -875,28 +876,67 @@ window.addEventListener('pointermove', e => {
       box.classList.add('dragging');
       document.body.classList.add('is-dragging');
       mouseX = -1; updateOverlay();
+      // Создаём placeholder той же высоты, что и перетаскиваемый график
+      chartDragPlaceholder = document.createElement('div');
+      chartDragPlaceholder.className = 'chart-box placeholder';
+      chartDragPlaceholder.style.height = box.offsetHeight + 'px';
     } else return;
   }
   e.preventDefault();
   const container = document.getElementById('charts');
-  const boxes = Array.from(container.querySelectorAll('.chart-box'));
+  const boxes = Array.from(container.querySelectorAll('.chart-box:not(.placeholder)'));
+  
+  // Автопрокрутка у краёв экрана
+  const viewportHeight = window.innerHeight;
+  const edgeZone = 80;
+  const scrollSpeed = 12;
+  if (e.clientY < edgeZone) {
+    window.scrollBy(0, -scrollSpeed);
+  } else if (e.clientY > viewportHeight - edgeZone) {
+    window.scrollBy(0, scrollSpeed);
+  }
+  
+  // Находим целевую позицию для placeholder
   let target = null;
   for (let i = 0; i < boxes.length; i++) {
     if (boxes[i] === box) continue;
     const r = boxes[i].getBoundingClientRect();
     if (e.clientY < r.top + r.height / 2) { target = boxes[i]; break; }
   }
-  if (target) container.insertBefore(box, target);
-  else container.appendChild(box);
+  
+  // Вставляем placeholder перед целевым элементом (или в конец)
+  if (target) {
+    if (chartDragPlaceholder.nextSibling !== target && target.previousSibling !== chartDragPlaceholder) {
+      container.insertBefore(chartDragPlaceholder, target);
+    }
+  } else {
+    if (container.lastChild !== chartDragPlaceholder) {
+      container.appendChild(chartDragPlaceholder);
+    }
+  }
 });
 function endPointerDrag(e) {
   if (!dragState) return;
   if (e && e.pointerId !== undefined && e.pointerId !== dragState.id) return;
   const box = dragState.box;
-  if (dragState.dragging) {
+  if (dragState.dragging && chartDragPlaceholder) {
+    // Вставляем настоящий элемент на место placeholder
+    const container = document.getElementById('charts');
+    const ph = chartDragPlaceholder;
+    const parent = ph.parentNode;
+    if (parent) {
+      parent.insertBefore(box, ph);
+      ph.remove();
+    }
+    chartDragPlaceholder = null;
     box.classList.remove('dragging');
     document.body.classList.remove('is-dragging');
     saveOrder();
+  } else {
+    if (chartDragPlaceholder) {
+      chartDragPlaceholder.remove();
+      chartDragPlaceholder = null;
+    }
   }
   try { box.releasePointerCapture(dragState.id); } catch(_){}
   dragState = null;
@@ -1277,27 +1317,35 @@ function createSettingsUI() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     const rect = settingsList.getBoundingClientRect();
-    const edge = 48; // зона у края, px
+    const edge = 60; // зона у края, px
     if (e.clientY < rect.top + edge) {
-      settingsList.scrollTop -= Math.ceil(16 * (1 - (e.clientY - rect.top) / edge));
+      settingsList.scrollTop -= Math.ceil(20 * (1 - (e.clientY - rect.top) / edge));
     } else if (e.clientY > rect.bottom - edge) {
-      settingsList.scrollTop += Math.ceil(16 * (1 - (rect.bottom - e.clientY) / edge));
+      settingsList.scrollTop += Math.ceil(20 * (1 - (rect.bottom - e.clientY) / edge));
     }
   });
-  // drop: вставляем элемент туда, куда указывает линия вставки
+  // drop: вставляем элемент туда, где находится placeholder
   settingsList.addEventListener('drop', (e) => {
     e.preventDefault();
     const fromName = settingsDrag.fromName, fromIdx = settingsDrag.fromIdx;
-    const dropItem = settingsDrag.dropItem, dropBefore = settingsDrag.dropBefore;
     clearDropIndicators();
     resetSettingsDrag();
-    if (!dropItem || fromIdx < 0 || !fromName) return;
-    const targetIdx = chartOrder.indexOf(dropItem.dataset.name);
-    if (targetIdx < 0) return;
-    // индекс вставки в исходном массиве → в массиве без перетаскиваемого
-    const insertIdx = dropBefore ? targetIdx : targetIdx + 1;
+    if (!fromName || fromIdx < 0) return;
+    // Находим позицию placeholder в DOM
+    const ph = document.querySelector('.settings-item.placeholder');
+    if (!ph) return;
+    // Определяем индекс вставки по позиции placeholder
+    const items = Array.from(list.querySelectorAll('.settings-item:not(.placeholder)'));
+    let insertIdx = items.length; // По умолчанию — в конец
+    for (let i = 0; i < items.length; i++) {
+      if (items[i] === ph.previousElementSibling || items[i] === ph.nextElementSibling) {
+        insertIdx = i;
+        break;
+      }
+    }
+    // Корректируем индекс с учётом того, что элемент ещё не удалён из массива
     const actualIdx = insertIdx > fromIdx ? insertIdx - 1 : insertIdx;
-    if (actualIdx === fromIdx) return; // элемент остаётся на месте — ничего не делаем
+    if (actualIdx === fromIdx) return;
     const moved = chartOrder.splice(fromIdx, 1)[0];
     chartOrder.splice(actualIdx, 0, moved);
     applyNewOrder();
@@ -1326,13 +1374,27 @@ function toggleSettings(force) {
 }
 
 // ===== Состояние переноса в панели настроек =====
-let settingsDrag = { fromName: null, fromIdx: -1, dropItem: null, dropBefore: false };
+let settingsDrag = { fromName: null, fromIdx: -1 };
 function resetSettingsDrag() {
-  settingsDrag = { fromName: null, fromIdx: -1, dropItem: null, dropBefore: false };
+  if (settingsDrag.placeholder) {
+    settingsDrag.placeholder.remove();
+    settingsDrag.placeholder = null;
+  }
+  settingsDrag = { fromName: null, fromIdx: -1 };
 }
 function setDropIndicator(item, before) {
   clearDropIndicators();
-  item.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+  // Создаём placeholder перед элементом, куда вставляем
+  if (!settingsDrag.placeholder) {
+    const ph = document.createElement('div');
+    ph.className = 'settings-item placeholder';
+    settingsDrag.placeholder = ph;
+  }
+  if (before) {
+    item.parentNode.insertBefore(settingsDrag.placeholder, item);
+  } else {
+    item.parentNode.insertBefore(settingsDrag.placeholder, item.nextSibling);
+  }
 }
 function clearDropIndicators() {
   document.querySelectorAll('.settings-item.drag-over-top, .settings-item.drag-over-bottom')
@@ -1386,12 +1448,10 @@ function renderSettingsList() {
         settingsDrag.dropItem = null;
         return;
       }
-      // линия вставки: над строкой или под ней — по половине, где курсор
+      // Позиция вставки: над строкой или под ней — по половине, где курсор
       const rect = item.getBoundingClientRect();
       const before = e.clientY < rect.top + rect.height / 2;
       setDropIndicator(item, before);
-      settingsDrag.dropItem = item;
-      settingsDrag.dropBefore = before;
     });
 
     list.appendChild(item);

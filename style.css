@@ -176,8 +176,19 @@ kbd {
 }
 .chart-box:hover::after { opacity: .85; }
 .chart-box.dragging {
-  border-color: #4CAF50; cursor: grabbing; z-index: 10;
-  box-shadow: 0 14px 34px rgba(0,0,0,.65), 0 0 0 1px #4CAF50; transform: scale(1.006); opacity: .95;
+  border-color: #4CAF50; cursor: grabbing; z-index: 100;
+  box-shadow: 0 14px 34px rgba(0,0,0,.65), 0 0 0 1px #4CAF50;
+  transform: scale(1.02);
+  opacity: .9;
+  pointer-events: none;
+}
+.chart-box.placeholder {
+  background: rgba(76,175,80,.12);
+  border: 2px dashed #4CAF50;
+  border-radius: 7px;
+  min-height: 176px;
+  pointer-events: none;
+  margin: 4px 0;
 }
 .chart-box.flash { animation: flashPulse .9s ease; }
 @keyframes flashPulse {
@@ -322,7 +333,7 @@ canvas { display: block; width: 100%; }
 .settings-item {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 8px; border-radius: 6px; cursor: grab;
-  transition: background .12s; user-select: none;
+  transition: background .12s, transform .2s ease, opacity .2s ease; user-select: none;
 }
 .settings-item:hover { background: rgba(255,255,255,.04); }
 .settings-item .drag-handle {
@@ -333,7 +344,14 @@ canvas { display: block; width: 100%; }
 .settings-item .drag-handle:hover { color: #8AB4F8; background: rgba(138,180,248,.14); }
 .settings-item .drag-handle:active { cursor: grabbing; }
 .settings-item { cursor: grab; }
-.settings-item.dragging { opacity: .4; }
+.settings-item.dragging { opacity: .3; transform: scale(1.02); }
+.settings-item.placeholder {
+  background: rgba(74,144,217,.15);
+  border: 2px dashed #4a90d9;
+  border-radius: 6px;
+  min-height: 34px;
+  pointer-events: none;
+}
 .settings-item.drag-over-top { box-shadow: inset 0 2px 0 0 #4a90d9; }
 .settings-item.drag-over-bottom { box-shadow: inset 0 -2px 0 0 #4a90d9; }
 .settings-item input[type=checkbox] {
