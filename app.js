@@ -856,37 +856,40 @@ function attachChartListeners(el) {
   canvas.addEventListener('touchmove', onChartTouchMove, { passive: false });
   canvas.addEventListener('touchend', onChartTouchEnd);
   canvas.addEventListener('touchcancel', () => { chartTouch = null; });
-  // Перетаскивание: Pointer Events — работает мышью и трекпадом Mac (pointerType "mouse").
-  box.addEventListener('pointerdown', e => {
-    if (e.button !== 0) return;
-    if (e.pointerType === 'touch') return;
-    dragState = { box: box, startY: e.clientY, dragging: false, id: e.pointerId };
+  
+  // Перетаскивание через HTML5 Drag&Drop API — работает как в настройках
+  box.draggable = true;
+  box.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', el.id);
+    e.dataTransfer.effectAllowed = 'move';
+    // Запоминаем источник перетаскивания
+    chartDragSource = box;
+    // Скрываем оригинальный элемент, будет виден только drag image и placeholder
+    setTimeout(() => {
+      box.classList.add('dragging');
+    }, 0);
+  });
+  box.addEventListener('dragend', () => {
+    box.classList.remove('dragging');
+    if (chartDragPlaceholder) {
+      chartDragPlaceholder.remove();
+      chartDragPlaceholder = null;
+    }
+    document.querySelectorAll('.chart-box.drag-over').forEach(el => el.classList.remove('drag-over'));
+    chartDragSource = null;
   });
 }
 
-// Глобальные обработчики перетаскивания (захват указателя)
+// Глобальные обработчики перетаскивания для графиков (HTML5 Drag&Drop)
 let chartDragPlaceholder = null;
-window.addEventListener('pointermove', e => {
-  if (!dragState || e.pointerId !== dragState.id) return;
-  const box = dragState.box;
-  if (!dragState.dragging) {
-    if (Math.abs(e.clientY - dragState.startY) > 6) {
-      dragState.dragging = true;
-      try { box.setPointerCapture(dragState.id); } catch(_){}
-      box.classList.add('dragging');
-      document.body.classList.add('is-dragging');
-      mouseX = -1; updateOverlay();
-      // Создаём placeholder той же высоты, что и перетаскиваемый график
-      chartDragPlaceholder = document.createElement('div');
-      chartDragPlaceholder.className = 'chart-box placeholder';
-      chartDragPlaceholder.style.height = box.offsetHeight + 'px';
-      // Вставляем placeholder на место перетаскиваемого элемента
-      box.parentNode.insertBefore(chartDragPlaceholder, box.nextSibling);
-    } else return;
-  }
-  e.preventDefault();
+let chartDragSource = null;
+
+window.addEventListener('dragover', (e) => {
   const container = document.getElementById('charts');
-  const boxes = Array.from(container.querySelectorAll('.chart-box:not(.placeholder)'));
+  if (!container.contains(e.target)) return;
+  
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
   
   // Автопрокрутка у краёв экрана
   const viewportHeight = window.innerHeight;
@@ -898,54 +901,63 @@ window.addEventListener('pointermove', e => {
     window.scrollBy(0, scrollSpeed);
   }
   
+  const boxes = Array.from(container.querySelectorAll('.chart-box:not(.placeholder)'));
+  if (boxes.length === 0) return;
+  
   // Находим целевую позицию для placeholder
   let target = null;
   for (let i = 0; i < boxes.length; i++) {
-    if (boxes[i] === box) continue;
     const r = boxes[i].getBoundingClientRect();
     if (e.clientY < r.top + r.height / 2) { target = boxes[i]; break; }
   }
   
+  // Создаём placeholder если ещё нет
+  if (!chartDragPlaceholder && chartDragSource) {
+    chartDragPlaceholder = document.createElement('div');
+    chartDragPlaceholder.className = 'chart-box placeholder';
+    chartDragPlaceholder.style.height = chartDragSource.offsetHeight + 'px';
+  }
+  
   // Вставляем placeholder перед целевым элементом (или в конец)
-  if (target) {
-    if (chartDragPlaceholder.nextSibling !== target && target.previousSibling !== chartDragPlaceholder) {
-      container.insertBefore(chartDragPlaceholder, target);
-    }
-  } else {
-    if (container.lastChild !== chartDragPlaceholder) {
-      container.appendChild(chartDragPlaceholder);
+  if (chartDragPlaceholder) {
+    if (target) {
+      if (chartDragPlaceholder.nextSibling !== target && target.previousSibling !== chartDragPlaceholder) {
+        container.insertBefore(chartDragPlaceholder, target);
+      }
+    } else {
+      if (container.lastChild !== chartDragPlaceholder) {
+        container.appendChild(chartDragPlaceholder);
+      }
     }
   }
 });
-function endPointerDrag(e) {
-  if (!dragState) return;
-  if (e && e.pointerId !== undefined && e.pointerId !== dragState.id) return;
-  const box = dragState.box;
-  if (dragState.dragging && chartDragPlaceholder) {
-    // Вставляем настоящий элемент на место placeholder
-    const container = document.getElementById('charts');
-    const ph = chartDragPlaceholder;
-    const parent = ph.parentNode;
-    if (parent) {
-      parent.insertBefore(box, ph);
-      ph.remove();
-    }
-    chartDragPlaceholder = null;
-    box.classList.remove('dragging');
-    document.body.classList.remove('is-dragging');
+
+window.addEventListener('drop', (e) => {
+  const container = document.getElementById('charts');
+  if (!container.contains(e.target) || !chartDragPlaceholder) return;
+  
+  e.preventDefault();
+  
+  // Вставляем настоящий элемент на место placeholder
+  const ph = chartDragPlaceholder;
+  const parent = ph.parentNode;
+  if (parent && chartDragSource) {
+    parent.insertBefore(chartDragSource, ph);
+    ph.remove();
     saveOrder();
-  } else {
-    if (chartDragPlaceholder) {
-      chartDragPlaceholder.remove();
-      chartDragPlaceholder = null;
-    }
   }
-  try { box.releasePointerCapture(dragState.id); } catch(_){}
-  dragState = null;
-}
-window.addEventListener('pointerup', endPointerDrag);
-window.addEventListener('pointercancel', endPointerDrag);
-window.addEventListener('blur', () => endPointerDrag(null));
+  
+  chartDragPlaceholder = null;
+  chartDragSource = null;
+});
+
+window.addEventListener('dragend', () => {
+  if (chartDragPlaceholder) {
+    chartDragPlaceholder.remove();
+    chartDragPlaceholder = null;
+  }
+  chartDragSource = null;
+});
 
 function renderAll() {
   const tStart = timePosition, tEnd = timePosition + windowSize;
