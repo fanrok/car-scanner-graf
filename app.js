@@ -864,13 +864,13 @@ function attachChartListeners(el) {
     e.dataTransfer.effectAllowed = 'move';
     // Запоминаем источник перетаскивания
     chartDragSource = box;
-    // Скрываем оригинальный элемент, будет виден только drag image и placeholder
-    setTimeout(() => {
-      box.classList.add('dragging');
-    }, 0);
+    // Скрываем оригинальный элемент сразу, будет виден только drag image и placeholder
+    box.classList.add('dragging');
+    box.style.visibility = 'hidden';
   });
   box.addEventListener('dragend', () => {
     box.classList.remove('dragging');
+    box.style.visibility = '';
     if (chartDragPlaceholder) {
       chartDragPlaceholder.remove();
       chartDragPlaceholder = null;
@@ -1484,11 +1484,13 @@ function renderSettingsList() {
       e.dataTransfer.setData('text/plain', name);
       e.dataTransfer.effectAllowed = 'move';
       item.classList.add('dragging');
+      item.style.visibility = 'hidden';
       settingsDrag.fromName = name;
       settingsDrag.fromIdx = chartOrder.indexOf(name);
     });
     item.addEventListener('dragend', () => {
       item.classList.remove('dragging');
+      item.style.visibility = '';
       clearDropIndicators();
       if (settingsDrag.placeholder) {
         settingsDrag.placeholder.remove();
