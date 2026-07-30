@@ -1,0 +1,19 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "Однофайловый HTML-анализатор логов [CarScanner Pro](https://www.car-scanner.info/) для диагностики турбомоторов. Открывается прямо в браузере, ничего не устанавливает, работает офлайн.",
+  "main": "app.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "jest --verbose"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "csv-parse": "^7.0.1",
+    "jest": "^30.4.2"
+  }
+}
