@@ -1424,6 +1424,14 @@ function resetSettingsDrag() {
 }
 function setDropIndicator(item, before) {
   clearDropIndicators();
+  // Не показываем placeholder, если перетаскиваем элемент сам над собой
+  if (item.dataset.name === settingsDrag.fromName) {
+    if (settingsDrag.placeholder) {
+      settingsDrag.placeholder.remove();
+      settingsDrag.placeholder = null;
+    }
+    return;
+  }
   // Создаём placeholder перед элементом, куда вставляем
   if (!settingsDrag.placeholder) {
     const ph = document.createElement('div');
@@ -1485,15 +1493,6 @@ function renderSettingsList() {
     item.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      // над самим собой — вставки нет, индикатор гасим
-      if (item.dataset.name === settingsDrag.fromName) {
-        clearDropIndicators();
-        if (settingsDrag.placeholder) {
-          settingsDrag.placeholder.remove();
-          settingsDrag.placeholder = null;
-        }
-        return;
-      }
       // Позиция вставки: над строкой или под ней — по половине, где курсор
       const rect = item.getBoundingClientRect();
       const before = e.clientY < rect.top + rect.height / 2;
