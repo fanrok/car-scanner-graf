@@ -71,6 +71,9 @@ let chartObserver = null;
 let dangerRetards = [], throttleFlaps = [], turboEvents = [], knockEvents = [];
 let pendingFlash = null, chartTouch = null;
 const dpr = window.devicePixelRatio || 1;
+// ===== НОВОЕ: скрытие графиков и панель настроек =====
+let hiddenParams = new Set();
+let settingsOpen = false;
 
 function setCookie(n, v, d) { const e = new Date(); e.setTime(e.getTime() + (d||365)*864e5); document.cookie = n+'='+encodeURIComponent(v)+';expires='+e.toUTCString()+';path=/;SameSite=Lax'; }
 function getCookie(n) { const m = document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)')); return m ? decodeURIComponent(m[1]) : null; }
@@ -103,10 +106,14 @@ function loadFile(file) {
 }
 document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
 let dragDepth = 0;
-document.addEventListener('dragenter', e => { e.preventDefault(); if (++dragDepth === 1) document.body.classList.add('drop-active'); });
-document.addEventListener('dragleave', e => { e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('drop-active'); } });
-document.addEventListener('dragover', e => e.preventDefault());
-document.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-active'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+// Файловый drag (из ОС) содержит 'Files' в types; внутреннее перетаскивание
+// элементов панели настроек — только 'text/plain'. Реагируем только на файлы,
+// иначе drag в списке графиков включает оверлей «Отпустите CSV-файл».
+const isFileDrag = e => e.dataTransfer && Array.from(e.dataTransfer.types).indexOf('Files') !== -1;
+document.addEventListener('dragenter', e => { if (!isFileDrag(e)) return; e.preventDefault(); if (++dragDepth === 1) document.body.classList.add('drop-active'); });
+document.addEventListener('dragleave', e => { if (!isFileDrag(e)) return; e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('drop-active'); } });
+document.addEventListener('dragover', e => { if (isFileDrag(e)) e.preventDefault(); });
+document.addEventListener('drop', e => { if (!isFileDrag(e)) return; e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-active'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
 
 const wsSlider = document.getElementById('windowSize');
 document.getElementById('zoomIn').addEventListener('click', () => { windowSize = Math.round(Math.max(5, windowSize * 0.7)); updateControls(); saveSetting('windowSize', windowSize); scheduleRender(); });
@@ -115,6 +122,7 @@ document.getElementById('resetZoom').addEventListener('click', () => {
   windowSize = 30; timePosition = 0;
   clearSavedOrder();
   chartOrder = naturalOrder.slice();
+  hiddenParams.clear(); // НОВОЕ: сброс скрытых
   saveSetting('windowSize', windowSize);
   updateControls();
   buildCharts(); renderAll();
@@ -340,7 +348,8 @@ function parseAndDraw(text, fileName) {
   const totalParams = Object.keys(allData).filter(k => allData[k].length).length;
   const parseMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0;
   document.getElementById('fileInfo').textContent = fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек · ' + totalParams + ' параметров' + ' · ' + parseMs.toFixed(0) + 'мс';
-  timePosition = 0; updateControls(); runAnalysis(); buildCharts(); renderAll();
+    timePosition = 0; updateControls(); runAnalysis(); buildCharts(); renderAll();
+  applyVisibility(); // НОВОЕ: применить скрытые графики
 }
 
 function getRoleData(roleId) { const n = roleParams[roleId]; return n && n.length ? allData[n[0]] : null; }
@@ -786,6 +795,19 @@ function buildCharts() {
     const box = document.createElement('div'); box.className = 'chart-box'; box.dataset.name = name;
     const wrapper = document.createElement('div'); wrapper.className = 'canvas-wrapper';
     box.appendChild(wrapper); container.appendChild(box);
+       // Кнопка скрытия графика (слот слева зарезервирован в drawChart)
+    const hideBtn = document.createElement('button');
+    hideBtn.className = 'chart-hide-btn';
+    hideBtn.textContent = '👁️';
+    hideBtn.title = 'Скрыть график (вернуть: ⚙)';
+    hideBtn.addEventListener('pointerdown', e => e.stopPropagation()); // не запускаем drag
+    hideBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hiddenParams.add(name);
+      box.style.display = 'none';
+      if (settingsOpen) renderSettingsList();
+    });
+    box.appendChild(hideBtn);
     const W = wrapper.clientWidth || 800;
     const canvas = document.createElement('canvas'); canvas.className = 'main-canvas';
     canvas.width = W * dpr; canvas.height = CHART_H * dpr; canvas.style.height = CHART_H + 'px';
@@ -1015,15 +1037,16 @@ function drawChart(el) {
   }
   const rightW = statsW + anomW + badgeW;
 
-  ctx.fillStyle = param.color; ctx.fillRect(8, 4.5, 4, 13);
-  const titleAvail = Math.max(36, W - 8 - rightW - 17 - 8);
+  // Слот 0–24px слева зарезервирован под кнопку скрытия (👁️)
+  ctx.fillStyle = param.color; ctx.fillRect(28, 4.5, 4, 13);
+  const titleAvail = Math.max(36, W - 8 - rightW - 37 - 8);
   const titleStr = fitText(ctx, param.name, titleFont, titleAvail);
   ctx.font = titleFont; ctx.textAlign = 'left'; ctx.fillStyle = '#e2e8f0';
-  ctx.fillText(titleStr, 17, 16);
+  ctx.fillText(titleStr, 37, 16);
   const titleW = ctx.measureText(titleStr).width;
-  if (param.unit && 17 + titleW + 8 + 26 <= W - 8 - rightW) {
+  if (param.unit && 37 + titleW + 8 + 26 <= W - 8 - rightW) {
     ctx.font = (isNarrow ? '10px ' : '11px ') + MONO; ctx.fillStyle = '#75808e';
-    ctx.fillText(param.unit, 17 + titleW + 6, 16);
+    ctx.fillText(param.unit, 37 + titleW + 6, 16);
   }
 
   let rightX = W - 8;
@@ -1211,9 +1234,269 @@ function formatWin(s) { s = Math.round(s); return s >= 60 ? Math.floor(s / 60) +
 function niceNum(range, round) { const exp = Math.floor(Math.log10(range)); const frac = range / Math.pow(10, exp); let nice; if (round) nice = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10; else nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10; return nice * Math.pow(10, exp); }
 function getNiceTicks(min, max, target) { if (min === max) return [min]; const range = niceNum(max - min, false); const spacing = niceNum(range / (target - 1), true); const nMin = Math.floor(min / spacing) * spacing; const nMax = Math.ceil(max / spacing) * spacing; const ticks = []; for (let v = nMin; v <= nMax + 0.5 * spacing; v += spacing) ticks.push(parseFloat(v.toFixed(10))); return ticks; }
 
+// ===== ПАНЕЛЬ НАСТРОЕК ВИДИМОСТИ И ПОРЯДКА =====
+function createSettingsUI() {
+  // Кнопка-шестерёнка — вставляем в тулбар перед кнопкой «Сброс»
+  const toolbar = document.querySelector('.toolbar') || document.getElementById('zoomIn').parentElement;
+  const btn = document.createElement('button');
+  btn.id = 'settingsBtn';
+  btn.textContent = '⚙';
+  btn.title = 'Видимость и порядок графиков';
+  const resetBtn = document.getElementById('resetZoom');
+  if (resetBtn && resetBtn.parentElement === toolbar) toolbar.insertBefore(btn, resetBtn);
+  else toolbar.appendChild(btn);
+
+  // Оверлей + панель
+  const overlay = document.createElement('div');
+  overlay.className = 'settings-overlay';
+  overlay.id = 'settingsOverlay';
+  document.body.appendChild(overlay);
+
+  const panel = document.createElement('div');
+  panel.className = 'settings-panel';
+  panel.id = 'settingsPanel';
+  panel.innerHTML =
+    '<div class="settings-header"><span>📊 Графики</span><button id="settingsClose">×</button></div>' +
+    '<div class="settings-hint">Перетаскивайте для изменения порядка · галочка — видимость</div>' +
+    '<div class="settings-list" id="settingsList"></div>' +
+    '<div class="settings-footer"><button id="settingsShowAll">Показать все</button><span class="count" id="settingsCount"></span></div>';
+  document.body.appendChild(panel);
+
+  btn.addEventListener('click', () => toggleSettings());
+  overlay.addEventListener('click', () => toggleSettings(false));
+  document.getElementById('settingsClose').addEventListener('click', () => toggleSettings(false));
+  document.getElementById('settingsShowAll').addEventListener('click', () => {
+    hiddenParams.clear();
+    applyVisibility();
+    renderSettingsList();
+  });
+  // drop разрешён в любой точке списка
+    const settingsList = document.getElementById('settingsList');
+  // drop разрешён в любой точке списка + автопрокрутка у краёв
+  settingsList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = settingsList.getBoundingClientRect();
+    const edge = 48; // зона у края, px
+    if (e.clientY < rect.top + edge) {
+      settingsList.scrollTop -= Math.ceil(16 * (1 - (e.clientY - rect.top) / edge));
+    } else if (e.clientY > rect.bottom - edge) {
+      settingsList.scrollTop += Math.ceil(16 * (1 - (rect.bottom - e.clientY) / edge));
+    }
+  });
+  // drop: вставляем элемент туда, куда указывает линия вставки
+  settingsList.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const fromName = settingsDrag.fromName, fromIdx = settingsDrag.fromIdx;
+    const dropItem = settingsDrag.dropItem, dropBefore = settingsDrag.dropBefore;
+    clearDropIndicators();
+    resetSettingsDrag();
+    if (!dropItem || fromIdx < 0 || !fromName) return;
+    const targetIdx = chartOrder.indexOf(dropItem.dataset.name);
+    if (targetIdx < 0) return;
+    // индекс вставки в исходном массиве → в массиве без перетаскиваемого
+    const insertIdx = dropBefore ? targetIdx : targetIdx + 1;
+    const actualIdx = insertIdx > fromIdx ? insertIdx - 1 : insertIdx;
+    if (actualIdx === fromIdx) return; // элемент остаётся на месте — ничего не делаем
+    const moved = chartOrder.splice(fromIdx, 1)[0];
+    chartOrder.splice(actualIdx, 0, moved);
+    applyNewOrder();
+  });
+    // подсказка в хелп о видимости графиков
+  const helpBody = document.querySelector('.help-panel-body');
+  if (helpBody && !document.getElementById('helpVisibility')) {
+    const h = document.createElement('h4');
+    h.id = 'helpVisibility';
+    h.textContent = 'Видимость графиков';
+    const ul = document.createElement('ul');
+    ul.innerHTML =
+      '<li>Кнопка <b>⚙</b> рядом с «Сброс» — окно настройки: галочки скрывают и показывают графики, перетаскивание строк меняет их порядок.</li>' +
+      '<li>Значок глаза в левом верхнем углу графика — быстро скрыть график. Вернуть его можно через ⚙.</li>';
+    helpBody.appendChild(h);
+    helpBody.appendChild(ul);
+  }
+}
+
+function toggleSettings(force) {
+  settingsOpen = force !== undefined ? force : !settingsOpen;
+  document.getElementById('settingsOverlay').classList.toggle('open', settingsOpen);
+  document.getElementById('settingsPanel').classList.toggle('open', settingsOpen);
+  document.getElementById('settingsBtn').classList.toggle('active', settingsOpen);
+  if (settingsOpen) renderSettingsList();
+}
+
+// ===== Состояние переноса в панели настроек =====
+let settingsDrag = { fromName: null, fromIdx: -1, dropItem: null, dropBefore: false };
+function resetSettingsDrag() {
+  settingsDrag = { fromName: null, fromIdx: -1, dropItem: null, dropBefore: false };
+}
+function setDropIndicator(item, before) {
+  clearDropIndicators();
+  item.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+}
+function clearDropIndicators() {
+  document.querySelectorAll('.settings-item.drag-over-top, .settings-item.drag-over-bottom')
+    .forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+}
+
+function renderSettingsList() {
+  const list = document.getElementById('settingsList');
+  list.innerHTML = '';
+  chartOrder.forEach((name) => {
+    const cfg = getConfig(name);
+    const hidden = hiddenParams.has(name);
+    const item = document.createElement('div');
+    item.className = 'settings-item' + (hidden ? ' hidden-item' : '');
+    item.draggable = true;
+    item.dataset.name = name;
+    item.innerHTML =
+      '<span class="drag-handle">⠿</span>' +
+      '<input type="checkbox"' + (hidden ? '' : ' checked') + '>' +
+      '<span class="color-dot" style="background:' + cfg.color + '"></span>' +
+      '<span class="item-name">' + (cfg.shortName || name) + '</span>';
+
+    // чекбокс — видимость
+    item.querySelector('input').addEventListener('change', (e) => {
+      if (e.target.checked) hiddenParams.delete(name);
+      else hiddenParams.add(name);
+      applyVisibility();
+      item.classList.toggle('hidden-item', !e.target.checked);
+      updateSettingsCount();
+    });
+
+    // --- перенос: «призрак» за курсором, линия показывает место вставки ---
+    item.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', name);
+      e.dataTransfer.effectAllowed = 'move';
+      item.classList.add('dragging');
+      settingsDrag.fromName = name;
+      settingsDrag.fromIdx = chartOrder.indexOf(name);
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      clearDropIndicators();
+      resetSettingsDrag();
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      // над самим собой — вставки нет, индикатор гасим
+      if (item.dataset.name === settingsDrag.fromName) {
+        clearDropIndicators();
+        settingsDrag.dropItem = null;
+        return;
+      }
+      // линия вставки: над строкой или под ней — по половине, где курсор
+      const rect = item.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      setDropIndicator(item, before);
+      settingsDrag.dropItem = item;
+      settingsDrag.dropBefore = before;
+    });
+
+    list.appendChild(item);
+  });
+  updateSettingsCount();
+}
+
+function clearDragOver() {
+  document.querySelectorAll('.settings-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+// Применяем порядок: сохраняем НАПРЯМУЮ, а не через saveOrder() —
+// та читает DOM основного списка (ещё не перестроен) и затирает новый порядок старым.
+function applyNewOrder() {
+  saveSetting(ORDER_KEY, JSON.stringify(chartOrder));
+  rebuildChartsFromOrder();
+  renderSettingsList();
+}
+
+// ===== Перетаскивание строк в панели настроек (Pointer Events) =====
+/*let settingsDrag = null; // { item, startY, dragging, id }
+
+function attachSettingsItemDrag(item) {
+  const handle = item.querySelector('.drag-handle');
+  handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    if (e.pointerType === 'touch') return; // не мешаем скроллу списка пальцем
+    settingsDrag = { item, startY: e.clientY, dragging: false, id: e.pointerId };
+    e.preventDefault(); // запрещаем выделение текста
+  });
+}*/
+
+window.addEventListener('pointermove', e => {
+  if (!settingsDrag || e.pointerId !== settingsDrag.id) return;
+  const item = settingsDrag.item;
+  const list = document.getElementById('settingsList');
+  if (!list) { settingsDrag = null; return; }
+
+  if (!settingsDrag.dragging) {
+    if (Math.abs(e.clientY - settingsDrag.startY) > 5) {
+      settingsDrag.dragging = true;
+      try { item.setPointerCapture(settingsDrag.id); } catch(_){}
+      item.classList.add('dragging');
+    } else return;
+  }
+  e.preventDefault();
+
+  // авто-скролл списка у краёв
+  const listRect = list.getBoundingClientRect();
+  if (e.clientY < listRect.top + 28) list.scrollTop -= 8;
+  else if (e.clientY > listRect.bottom - 28) list.scrollTop += 8;
+
+  // вставка перед первой строкой, чей центр ниже указателя (как у графиков)
+  const items = Array.from(list.querySelectorAll('.settings-item'));
+  let target = null;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i] === item) continue;
+    const r = items[i].getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { target = items[i]; break; }
+  }
+  if (target) list.insertBefore(item, target);
+  else list.appendChild(item);
+});
+
+function endSettingsDrag(e) {
+  if (!settingsDrag) return;
+  if (e && e.pointerId !== undefined && e.pointerId !== settingsDrag.id) return;
+  const item = settingsDrag.item;
+  if (settingsDrag.dragging) {
+    item.classList.remove('dragging');
+    // порядок берём прямо из DOM
+    const list = document.getElementById('settingsList');
+    const newOrder = Array.from(list.querySelectorAll('.settings-item')).map(el => el.dataset.name);
+    chartOrder.forEach(n => { if (newOrder.indexOf(n) === -1) newOrder.push(n); });
+    chartOrder = newOrder;
+    saveOrder();
+    rebuildChartsFromOrder();
+  }
+  try { item.releasePointerCapture(settingsDrag.id); } catch(_){}
+  settingsDrag = null;
+}
+window.addEventListener('pointerup', endSettingsDrag);
+window.addEventListener('pointercancel', endSettingsDrag);
+
+function updateSettingsCount() {
+  const el = document.getElementById('settingsCount');
+  if (el) el.textContent = (chartOrder.length - hiddenParams.size) + ' / ' + chartOrder.length + ' видно';
+}
+
+function applyVisibility() {
+  chartEls.forEach(el => {
+    el.box.style.display = hiddenParams.has(el.name) ? 'none' : '';
+  });
+}
+
+function rebuildChartsFromOrder() {
+  buildCharts();
+  renderAll();
+  applyVisibility();
+}
+
 (function init() {
   const sw = parseFloat(loadSetting('windowSize'));
   if (!isNaN(sw) && sw >= 5) windowSize = sw;
   if (loadSetting('fixedScale') === '1') document.getElementById('fixedScale').checked = true;
   updateControls();
+  createSettingsUI(); // НОВОЕ
 })();
