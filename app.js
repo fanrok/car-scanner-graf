@@ -35,6 +35,14 @@ const RETARD_LOOKAHEAD_WINDOW = 0.5;   // Окно проверки услови
 const RETARD_DERIVATIVE_MIN = 0.5;     // Минимальная скорость падения УОЗ (°/с) — отсекает плавный дрейф
 const RETARD_CLUSTER_GAP = 1.0;        // Макс. разрыв между точками кластера (с) — если больше, считаем разными эпизодами
 
+// ===== Прокси передаточного числа (RPM/Speed) — общий фильтр переключений =====
+// Само по себе падение TPS не ловит флэт-шифт (переключение под полным газом,
+// когда педаль не отпускается) — поэтому дополнительно смотрим на RPM/Speed:
+// если это отношение скачком меняется, значит сменилась передача.
+const GEAR_MIN_SPEED = 5;           // км/ч — ниже скорость около нуля, прокси ненадёжен
+const GEAR_RATIO_JUMP = 0.08;       // относительное изменение RPM/Speed за окно — считаем переключением
+const OVERRUN_STFT_THRESHOLD = -40; // % — коррекция топлива ниже — отсечка/сильный оверран, УОЗ не может привести к детонации
+
 // ===== Детекция хлопания дросселя =====
 const FLAP_ZONE = [45, 85], FLAP_MIN_AMPLITUDE = 10, FLAP_RPM_DROP = 30;
 const FLAP_MIN_OSCILLATIONS = 3;       // Минимум «зигзагов» в серии для события
@@ -43,6 +51,14 @@ const FLAP_RPM_VARIATION_MIN = 50;     // Минимальные колебан�
 
 // ===== Детекция аномалий турбины =====
 const TURBO_UNDERBOOST = 0.3, TURBO_WOT_RPM = 2000, TURBO_DELTA = 0.5, TURBO_DROP_TPS = 50;
+const TURBO_HANG_TPS = 20;          // TPS ниже этого — дроссель считаем закрытым
+const TURBO_HANG_MIN_RPM = 2000;    // "зависание" наддува ищем только пока турбина ещё раскручена
+const TURBO_HANG_MIN_BOOST = 0.15;  // наддув (бар), который не должен держаться после закрытия дросселя
+const TURBO_HANG_WINDOW = 1.5;      // с — через сколько наддув должен был спасть
+const HUNT_WINDOW = 3.0;            // с — окно проверки на "охоту" (колебания) наддува
+const HUNT_MIN_REVERSALS = 3;       // мин. число разворотов d(boost)/dt в окне
+const HUNT_MIN_AMPLITUDE = 0.05;    // бар — мин. размах колебаний в окне (иначе — шум сигнала)
+const HUNT_MIN_BOOST_LEVEL = 0.05;  // бар — "охоту" ищем только там, где реально есть наддув, не на ХХ/вакууме
 
 // ===== Склейка событий =====
 const MERGE_RETARD = 2, MERGE_FLAP = 2, MERGE_TURBO = 3, MERGE_KNOCK = 2;
@@ -316,22 +332,37 @@ function parseAndDraw(text, fileName) {
 
 function getRoleData(roleId) { const n = roleParams[roleId]; return n && n.length ? allData[n[0]] : null; }
 function getRoleNames(roleId) { return roleParams[roleId] || []; }
+// Возвращает true, если между t0 и t1 скачком изменилось передаточное
+// число (прокси = RPM/Speed). Используется, чтобы не путать смену
+// передачи (в т.ч. флэт-шифт под полным газом, без отпускания педали)
+// с настоящим откатом УОЗ или хлопком дросселя.
+function gearShiftBetween(rpm, speed, t0, t1) {
+  if (!speed || !rpm) return false;
+  const s0 = getValueAtTime(speed, t0), s1 = getValueAtTime(speed, t1);
+  const r0 = getValueAtTime(rpm, t0), r1 = getValueAtTime(rpm, t1);
+  if (s0 === null || s1 === null || r0 === null || r1 === null) return false;
+  if (s0 < GEAR_MIN_SPEED || s1 < GEAR_MIN_SPEED) return false; // на около-нулевой скорости прокси не работает
+  const ratio0 = r0 / s0, ratio1 = r1 / s1;
+  if (ratio0 === 0) return false;
+  return Math.abs(ratio1 - ratio0) / Math.abs(ratio0) > GEAR_RATIO_JUMP;
+}
 function runAnalysis() {
   dangerRetards = []; throttleFlaps = []; turboEvents = []; knockEvents = [];
   const rpm = getRoleData('rpm'), knock = getRoleData('knockDetected');
   const speed = getRoleData('speed'), tps = getRoleData('throttle');
   const load = getRoleData('load'), boost = getRoleData('boost');
+  const correction = getRoleData('correction');
   if (rpm && rpm.length >= 2) {
-    getRoleNames('uoz').forEach(uozName => { dangerRetards = dangerRetards.concat(detectRetards(uozName, rpm, tps, load, knock)); });
+    getRoleNames('uoz').forEach(uozName => { dangerRetards = dangerRetards.concat(detectRetards(uozName, rpm, tps, load, knock, speed, correction)); });
     dangerRetards.sort((a, b) => a.x - b.x);
     dangerRetards = dedup(dangerRetards, MERGE_RETARD);
   }
-  if (tps && tps.length >= 3 && rpm && rpm.length >= 2) throttleFlaps = detectFlaps(getRoleNames('throttle')[0], tps, rpm);
-  if (boost && boost.length >= 2 && tps && rpm && rpm.length >= 2) turboEvents = detectTurbo(getRoleNames('boost')[0], boost, tps, rpm);
+  if (tps && tps.length >= 3 && rpm && rpm.length >= 2) throttleFlaps = detectFlaps(getRoleNames('throttle')[0], tps, rpm, speed);
+  if (boost && boost.length >= 2 && tps && rpm && rpm.length >= 2) turboEvents = detectTurbo(getRoleNames('boost')[0], boost, tps, rpm, speed);
   if (knock && knock.length >= 1) knockEvents = detectKnock(getRoleNames('knockDetected')[0], knock, rpm, speed);
   renderEventsPanel();
 }
-function detectRetards(uozName, rpm, tps, load, knock) {
+function detectRetards(uozName, rpm, tps, load, knock, speed, correction) {
   const uoz = allData[uozName], label = paramConfigs[uozName].shortName, out = [];
   // Шаг 1: кластеризация — группируем последовательные точки с глубоким минусом
   const clusters = [];
@@ -371,9 +402,26 @@ function detectRetards(uozName, rpm, tps, load, knock) {
     const rpmAt = getValueAtTime(rpm, midX);
     if (rpmAt === null || rpmAt <= MIN_RPM) continue;
 
-    // --- TPS (среднее по окну) + проверки, требующие TPS ---
     const winStart = cluster.startX - RETARD_LOOKAHEAD_WINDOW;
     const winEnd = cluster.endX + RETARD_LOOKAHEAD_WINDOW;
+
+    // --- Фильтр переключения передачи, в т.ч. флэт-шифт под полным газом:
+    // педаль не отпускается, но обороты падают из-за смены передаточного
+    // числа — по одному TPS такое переключение не отличить от отката ---
+    if (gearShiftBetween(rpm, speed, winStart, winEnd)) continue;
+
+    // --- Оверран/отсечка топлива (DFCO): коррекция топлива сильно
+    // отрицательная — топлива в цилиндрах по сути нет, детонировать нечему,
+    // отрицательный УОЗ в этот момент штатен ---
+    if (correction) {
+      const corrWindow = sliceRange(correction, winStart, winEnd);
+      if (corrWindow.length > 0) {
+        const avgCorr = corrWindow.reduce((s, p) => s + p.y, 0) / corrWindow.length;
+        if (avgCorr < OVERRUN_STFT_THRESHOLD) continue;
+      }
+    }
+
+    // --- TPS (среднее по окну) + проверки, требующие TPS ---
     let avgTPS = null;
     if (tps) {
       const tpsWindow = sliceRange(tps, winStart, winEnd);
@@ -404,15 +452,34 @@ function detectRetards(uozName, rpm, tps, load, knock) {
         const rpmDrop = rpmAfter[rpmAfter.length - 1].y < rpmAfter[0].y - RPM_DROP_EPS;
         if (rpmDrop) continue;
       }
+    } else if (load) {
+      // --- Без TPS, но есть нагрузка двигателя: используем её как приближение
+      // положения педали, иначе оверран/сброс газа легко принять за откат ---
+      const loadWindow = sliceRange(load, winStart, winEnd);
+      const avgLoad = loadWindow.length > 0 ? loadWindow.reduce((s, p) => s + p.y, 0) / loadWindow.length : null;
+      if (avgLoad !== null && avgLoad < LOAD_MIN) continue;
+
+      // --- Фильтр переключения/сброса газа: нагрузка падает после события? ---
+      const afterLoad = sliceRange(load, midX, midX + 0.4);
+      if (afterLoad.length > 0) {
+        const anyLoadDrop = afterLoad.some(p => p.y < LOAD_MIN);
+        if (anyLoadDrop) continue;
+      }
+
+      // --- RPM не падает ---
+      const rpmAfter = sliceRange(rpm, cluster.startX, cluster.endX + 0.2);
+      if (rpmAfter.length >= 2) {
+        const rpmDrop = rpmAfter[rpmAfter.length - 1].y < rpmAfter[0].y - RPM_DROP_EPS;
+        if (rpmDrop) continue;
+      }
     } else {
-      // --- Без TPS: проверяем стабильность RPM в момент события ---
+      // --- Совсем без TPS и без Load: проверяем хотя бы стабильность RPM в момент события ---
       const rpmDuring = sliceRange(rpm, cluster.startX, cluster.endX);
       if (rpmDuring.length >= 2) {
         const rpmDrift = Math.abs(rpmDuring[rpmDuring.length - 1].y - rpmDuring[0].y);
         // Если RPM ВО ВРЕМЯ события существенно меняются — это переключение/торможение, не откат
         if (rpmDrift > RPM_DROP_EPS * 4) continue;
       }
-      // Load без TPS не проверяем — он может не отражать реальное нажатие педали
     }
 
     // --- Derivative check: отсекаем плавный дрейф ---
@@ -458,7 +525,7 @@ function detectRetards(uozName, rpm, tps, load, knock) {
   out.sort((a, b) => b.severity - a.severity);
   return out;
 }
-function detectFlaps(tpsName, tps, rpm) {
+function detectFlaps(tpsName, tps, rpm, speed) {
   const out = [];
   let k = 1;
   while (k < tps.length - 1) {
@@ -491,6 +558,11 @@ function detectFlaps(tpsName, tps, rpm) {
     // Временное окно: серия не должна быть слишком длинной (разные нажатия педали)
     const dt = tps[seriesEnd].x - tps[k-1].x;
     if (dt > FLAP_MAX_DURATION) { k = seriesEnd; continue; }
+
+    // --- Фильтр переключения: если за время серии сменилось передаточное
+    // число (RPM/Speed скакнул) — это переключение передачи (или его часть,
+    // например перегазовка при понижении), а не настоящий хлопок дросселя ---
+    if (gearShiftBetween(rpm, speed, tps[k-1].x, tps[seriesEnd].x)) { k = seriesEnd; continue; }
 
     // RPM-контекст: обороты не ниже холостых, не падают (не coast/переключение)
     const r0 = getValueAtTime(rpm, tps[k-1].x), r1 = getValueAtTime(rpm, tps[seriesEnd].x);
@@ -526,7 +598,7 @@ function detectFlaps(tpsName, tps, rpm) {
   }
   return dedup(out, MERGE_FLAP);
 }
-function detectTurbo(boostName, boost, tps, rpm) {
+function detectTurbo(boostName, boost, tps, rpm, speed) {
   const out = [];
   for (let k = 1; k < boost.length; k++) {
     const p0 = boost[k-1], p1 = boost[k];
@@ -539,6 +611,48 @@ function detectTurbo(boostName, boost, tps, rpm) {
     else if (delta > TURBO_DELTA) kind = 'spike';
     if (kind) out.push({ x: p1.x, y: p1.y, kind: kind, target: boostName });
   }
+
+  // --- Зависание наддува (turbo hang): дроссель уже закрыт, обороты ещё
+  // высокие (турбина раскручена), а наддув держится дольше ожидаемого —
+  // подозрение на не закрывающийся вовремя wastegate/BOV. Это же состояние
+  // резко повышает риск хлопка дросселя при следующем открытии газа.
+  for (let k = 1; k < tps.length; k++) {
+    if (tps[k-1].y < TURBO_HANG_TPS || tps[k].y >= TURBO_HANG_TPS) continue; // ищем именно момент закрытия
+    const rpmAt = getValueAtTime(rpm, tps[k].x);
+    if (rpmAt === null || rpmAt < TURBO_HANG_MIN_RPM) continue;
+    const boostAtClose = getValueAtTime(boost, tps[k].x);
+    if (boostAtClose === null || boostAtClose < TURBO_HANG_MIN_BOOST) continue;
+    const boostLater = getValueAtTime(boost, tps[k].x + TURBO_HANG_WINDOW);
+    if (boostLater === null) continue;
+    if (boostLater > TURBO_HANG_MIN_BOOST * 0.6) out.push({ x: tps[k].x, y: boostAtClose, kind: 'hang', target: boostName });
+  }
+
+  // --- "Охота" наддува (wastegate hunting): на стационарном режиме (дроссель
+  // и обороты почти не меняются) наддув колеблется туда-сюда несколько раз.
+  for (let k = 0; k + HUNT_MIN_REVERSALS + 2 < boost.length; k++) {
+    const t0 = boost[k].x, t1End = t0 + HUNT_WINDOW;
+    const win = sliceRange(boost, t0, t1End);
+    if (win.length < HUNT_MIN_REVERSALS + 2) continue;
+    const tpsWin = sliceRange(tps, t0, t1End), rpmWin = sliceRange(rpm, t0, t1End);
+    if (tpsWin.length < 2 || rpmWin.length < 2) continue;
+    const tpsRange = Math.max(...tpsWin.map(p => p.y)) - Math.min(...tpsWin.map(p => p.y));
+    const rpmRange = Math.max(...rpmWin.map(p => p.y)) - Math.min(...rpmWin.map(p => p.y));
+    if (tpsRange > 8 || rpmRange > 150) continue; // режим не стационарный — пропускаем, чтобы не поймать обычный разгон
+    const avgBoost = win.reduce((s, p) => s + p.y, 0) / win.length;
+    if (avgBoost < HUNT_MIN_BOOST_LEVEL) continue; // на ХХ/вакууме наддува нет — это шум, а не "охота" wastegate
+    let reversals = 0;
+    for (let i = 1; i < win.length - 1; i++) {
+      const d1 = win[i].y - win[i-1].y, d2 = win[i+1].y - win[i].y;
+      if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) reversals++;
+    }
+    const amp = Math.max(...win.map(p => p.y)) - Math.min(...win.map(p => p.y));
+    if (reversals >= HUNT_MIN_REVERSALS && amp > HUNT_MIN_AMPLITUDE) {
+      const mid = win[Math.floor(win.length / 2)];
+      out.push({ x: mid.x, y: mid.y, kind: 'hunt', target: boostName });
+    }
+  }
+
+  out.sort((a, b) => a.x - b.x);
   return dedup(out, MERGE_TURBO);
 }
 function detectKnock(knockName, knock, rpm, speed) {
@@ -559,7 +673,7 @@ function dedup(events, gap) {
   events.forEach(e => { const last = out[out.length-1]; if (last && (e.x - last.x) < gap && (!e.kind || e.kind === last.kind) && e.target === last.target) return; out.push(e); });
   return out;
 }
-const TURBO_LABELS = { underboost: 'недодув', drop: 'сброс наддува', spike: 'скачок наддува' };
+const TURBO_LABELS = { underboost: 'недодув', drop: 'сброс наддува', spike: 'скачок наддува', hang: 'зависание наддува', hunt: 'охота наддува' };
 function severityLabel(sev) {
   if (sev >= 50) return '🔴';
   if (sev >= 20) return '🟠';
