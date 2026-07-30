@@ -30,7 +30,7 @@ const SKIP_PATTERNS = [/^(\[[^\]]*\]\s*)?обороты\s+двигателя\s*x
 // ===== Детекция отката УОЗ =====
 const MIN_RPM = 1000, TPS_RELEASED = 15, TPS_WOT = 84, LOAD_MIN = 25, RPM_DROP_EPS = 15;
 const RETARD_MIN_THRESHOLD = -2.0;    // УОЗ ≤ этого значения считается откатом (°)
-const RETARD_MIN_CONSECUTIVE = 2;      // Минимум последовательных точек с глубоким минусом
+const RETARD_MIN_CONSECUTIVE = 1;      // Минимум последовательных точек с глубоким минусом
 const RETARD_LOOKAHEAD_WINDOW = 0.5;   // Окно проверки условий вокруг события (с)
 const RETARD_DERIVATIVE_MIN = 0.5;     // Минимальная скорость падения УОЗ (°/с) — отсекает плавный дрейф
 const RETARD_CLUSTER_GAP = 1.0;        // Макс. разрыв между точками кластера (с) — если больше, считаем разными эпизодами
