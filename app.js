@@ -1362,32 +1362,32 @@ function createSettingsUI() {
   settingsList.addEventListener('drop', (e) => {
     e.preventDefault();
     const fromName = settingsDrag.fromName, fromIdx = settingsDrag.fromIdx;
-    if (!fromName || fromIdx < 0) return;
+    if (!fromName || fromIdx < 0) { resetSettingsDrag(); return; }
     
     // Находим позицию placeholder в DOM
     const ph = document.querySelector('.settings-item.placeholder');
-    if (!ph) return;
+    if (!ph) { resetSettingsDrag(); return; }
     
-    // Определяем индекс вставки по позиции placeholder
+    // Определяем новый индекс по позиции placeholder среди всех элементов
     const list = window._settingsListRef || document.getElementById('settingsList');
-    const items = Array.from(list.querySelectorAll('.settings-item:not(.placeholder)'));
-    let insertIdx = items.length; // По умолчанию — в конец
-    for (let i = 0; i < items.length; i++) {
-      if (items[i] === ph.previousElementSibling || items[i] === ph.nextElementSibling) {
-        insertIdx = i;
-        break;
-      }
-    }
-    // Корректируем индекс с учётом того, что элемент ещё не удалён из массива
-    const actualIdx = insertIdx > fromIdx ? insertIdx - 1 : insertIdx;
-    if (actualIdx === fromIdx) {
-      // Отпустили на том же месте — просто чистим
+    const allItems = Array.from(list.querySelectorAll('.settings-item'));
+    let newIdx = allItems.indexOf(ph);
+    if (newIdx === -1) { resetSettingsDrag(); return; }
+    
+    // Корректируем индекс: если вставляем после исходной позиции,
+    // то элемент ещё не удалён, поэтому индекс сдвигается на 1
+    if (newIdx > fromIdx) newIdx--;
+    
+    // Если позиция не изменилась — просто чистим
+    if (newIdx === fromIdx) {
       clearDropIndicators();
       resetSettingsDrag();
       return;
     }
+    
+    // Перемещаем элемент в массиве
     const moved = chartOrder.splice(fromIdx, 1)[0];
-    chartOrder.splice(actualIdx, 0, moved);
+    chartOrder.splice(newIdx, 0, moved);
     applyNewOrder();
   });
     // подсказка в хелп о видимости графиков
