@@ -880,6 +880,8 @@ window.addEventListener('pointermove', e => {
       chartDragPlaceholder = document.createElement('div');
       chartDragPlaceholder.className = 'chart-box placeholder';
       chartDragPlaceholder.style.height = box.offsetHeight + 'px';
+      // Вставляем placeholder на место перетаскиваемого элемента
+      box.parentNode.insertBefore(chartDragPlaceholder, box.nextSibling);
     } else return;
   }
   e.preventDefault();
