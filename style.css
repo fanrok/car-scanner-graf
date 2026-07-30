@@ -181,6 +181,7 @@ kbd {
   transform: scale(1.02);
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
 }
 .chart-box.placeholder {
   background: rgba(76,175,80,.12);
@@ -344,7 +345,7 @@ canvas { display: block; width: 100%; }
 .settings-item .drag-handle:hover { color: #8AB4F8; background: rgba(138,180,248,.14); }
 .settings-item .drag-handle:active { cursor: grabbing; }
 .settings-item { cursor: grab; }
-.settings-item.dragging { opacity: 0; transform: scale(1.02); }
+.settings-item.dragging { opacity: 0; transform: scale(1.02); visibility: hidden; }
 .settings-item.placeholder {
   background: rgba(74,144,217,.15);
   border: 2px dashed #4a90d9;

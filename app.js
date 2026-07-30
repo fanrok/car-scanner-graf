@@ -866,11 +866,9 @@ function attachChartListeners(el) {
     chartDragSource = box;
     // Скрываем оригинальный элемент после создания drag-image
     box.classList.add('dragging');
-    setTimeout(() => { box.style.visibility = 'hidden'; }, 0);
   });
   box.addEventListener('dragend', () => {
     box.classList.remove('dragging');
-    box.style.visibility = '';
     if (chartDragPlaceholder) {
       chartDragPlaceholder.remove();
       chartDragPlaceholder = null;
@@ -1484,13 +1482,11 @@ function renderSettingsList() {
       e.dataTransfer.setData('text/plain', name);
       e.dataTransfer.effectAllowed = 'move';
       item.classList.add('dragging');
-      setTimeout(() => { item.style.visibility = 'hidden'; }, 0);
       settingsDrag.fromName = name;
       settingsDrag.fromIdx = chartOrder.indexOf(name);
     });
     item.addEventListener('dragend', () => {
       item.classList.remove('dragging');
-      item.style.visibility = '';
       clearDropIndicators();
       if (settingsDrag.placeholder) {
         settingsDrag.placeholder.remove();
