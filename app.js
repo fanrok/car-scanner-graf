@@ -866,6 +866,13 @@ function attachChartListeners(el) {
     chartDragSource = box;
     // Скрываем оригинальный элемент после создания drag-image
     box.classList.add('dragging');
+    
+    // Создаём placeholder сразу при начале перетаскивания
+    const container = document.getElementById('charts');
+    chartDragPlaceholder = document.createElement('div');
+    chartDragPlaceholder.className = 'chart-box placeholder';
+    chartDragPlaceholder.style.height = box.offsetHeight + 'px';
+    container.insertBefore(chartDragPlaceholder, box);
   });
   box.addEventListener('dragend', () => {
     box.classList.remove('dragging');
@@ -911,18 +918,11 @@ window.addEventListener('dragover', (e) => {
   
   // Не показываем placeholder, если перетаскиваем элемент сам над собой
   if (target === chartDragSource) {
-    if (chartDragPlaceholder) {
+    if (chartDragPlaceholder && chartDragPlaceholder.parentNode) {
       chartDragPlaceholder.remove();
       chartDragPlaceholder = null;
     }
     return;
-  }
-  
-  // Создаём placeholder если ещё нет
-  if (!chartDragPlaceholder && chartDragSource) {
-    chartDragPlaceholder = document.createElement('div');
-    chartDragPlaceholder.className = 'chart-box placeholder';
-    chartDragPlaceholder.style.height = chartDragSource.offsetHeight + 'px';
   }
   
   // Вставляем placeholder перед целевым элементом (или в конец)
@@ -944,16 +944,6 @@ window.addEventListener('drop', (e) => {
   if (!container.contains(e.target)) return;
   
   e.preventDefault();
-  
-  // Если отпустили над тем же элементом — ничего не делаем
-  if (chartDragSource && e.target === chartDragSource) {
-    if (chartDragPlaceholder) {
-      chartDragPlaceholder.remove();
-      chartDragPlaceholder = null;
-    }
-    chartDragSource = null;
-    return;
-  }
   
   // Вставляем настоящий элемент на место placeholder
   const ph = chartDragPlaceholder;

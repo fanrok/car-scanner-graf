@@ -19,12 +19,6 @@ venv/
 .env.local
 *.env.*
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-*.swo
-
 # Build directories
 dist/
 build/
@@ -35,13 +29,22 @@ target/
 coverage/
 htmlcov/
 
-# Editors
+# Editors and IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # System files
 .DS_Store
 Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Gradle
+.gradle/
 
 # Compressed files
 *.zip
