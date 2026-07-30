@@ -1368,7 +1368,7 @@ function createSettingsUI() {
     const ph = document.querySelector('.settings-item.placeholder');
     if (!ph) { resetSettingsDrag(); return; }
     
-    // Определяем новый индекс по позиции placeholder среди всех элементов
+    // Определяем новый индекс по позиции placeholder среди всех элементов (включая placeholder)
     const list = window._settingsListRef || document.getElementById('settingsList');
     const allItems = Array.from(list.querySelectorAll('.settings-item'));
     let newIdx = allItems.indexOf(ph);
@@ -1378,8 +1378,10 @@ function createSettingsUI() {
     // то элемент ещё не удалён, поэтому индекс сдвигается на 1
     if (newIdx > fromIdx) newIdx--;
     
-    // Если позиция не изменилась — просто чистим
+    // Если позиция не изменилась — просто чистим и удаляем placeholder
     if (newIdx === fromIdx) {
+      ph.remove();
+      settingsDrag.placeholder = null;
       clearDropIndicators();
       resetSettingsDrag();
       return;
@@ -1488,6 +1490,10 @@ function renderSettingsList() {
     item.addEventListener('dragend', () => {
       item.classList.remove('dragging');
       clearDropIndicators();
+      if (settingsDrag.placeholder) {
+        settingsDrag.placeholder.remove();
+        settingsDrag.placeholder = null;
+      }
       resetSettingsDrag();
     });
     item.addEventListener('dragover', (e) => {
