@@ -911,6 +911,15 @@ window.addEventListener('dragover', (e) => {
     if (e.clientY < r.top + r.height / 2) { target = boxes[i]; break; }
   }
   
+  // Не показываем placeholder, если перетаскиваем элемент сам над собой
+  if (target === chartDragSource) {
+    if (chartDragPlaceholder) {
+      chartDragPlaceholder.remove();
+      chartDragPlaceholder = null;
+    }
+    return;
+  }
+  
   // Создаём placeholder если ещё нет
   if (!chartDragPlaceholder && chartDragSource) {
     chartDragPlaceholder = document.createElement('div');
@@ -934,13 +943,23 @@ window.addEventListener('dragover', (e) => {
 
 window.addEventListener('drop', (e) => {
   const container = document.getElementById('charts');
-  if (!container.contains(e.target) || !chartDragPlaceholder) return;
+  if (!container.contains(e.target)) return;
   
   e.preventDefault();
   
+  // Если отпустили над тем же элементом — ничего не делаем
+  if (chartDragSource && e.target === chartDragSource) {
+    if (chartDragPlaceholder) {
+      chartDragPlaceholder.remove();
+      chartDragPlaceholder = null;
+    }
+    chartDragSource = null;
+    return;
+  }
+  
   // Вставляем настоящий элемент на место placeholder
   const ph = chartDragPlaceholder;
-  const parent = ph.parentNode;
+  const parent = ph ? ph.parentNode : null;
   if (parent && chartDragSource) {
     parent.insertBefore(chartDragSource, ph);
     ph.remove();
@@ -1324,9 +1343,9 @@ function createSettingsUI() {
     applyVisibility();
     renderSettingsList();
   });
-  // drop разрешён в любой точке списка
-    const settingsList = document.getElementById('settingsList');
   // drop разрешён в любой точке списка + автопрокрутка у краёв
+  const settingsList = document.getElementById('settingsList');
+  
   settingsList.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -1338,17 +1357,19 @@ function createSettingsUI() {
       settingsList.scrollTop += Math.ceil(20 * (1 - (rect.bottom - e.clientY) / edge));
     }
   });
+  
   // drop: вставляем элемент туда, где находится placeholder
   settingsList.addEventListener('drop', (e) => {
     e.preventDefault();
     const fromName = settingsDrag.fromName, fromIdx = settingsDrag.fromIdx;
-    clearDropIndicators();
-    resetSettingsDrag();
     if (!fromName || fromIdx < 0) return;
+    
     // Находим позицию placeholder в DOM
     const ph = document.querySelector('.settings-item.placeholder');
     if (!ph) return;
+    
     // Определяем индекс вставки по позиции placeholder
+    const list = window._settingsListRef || document.getElementById('settingsList');
     const items = Array.from(list.querySelectorAll('.settings-item:not(.placeholder)'));
     let insertIdx = items.length; // По умолчанию — в конец
     for (let i = 0; i < items.length; i++) {
@@ -1359,7 +1380,12 @@ function createSettingsUI() {
     }
     // Корректируем индекс с учётом того, что элемент ещё не удалён из массива
     const actualIdx = insertIdx > fromIdx ? insertIdx - 1 : insertIdx;
-    if (actualIdx === fromIdx) return;
+    if (actualIdx === fromIdx) {
+      // Отпустили на том же месте — просто чистим
+      clearDropIndicators();
+      resetSettingsDrag();
+      return;
+    }
     const moved = chartOrder.splice(fromIdx, 1)[0];
     chartOrder.splice(actualIdx, 0, moved);
     applyNewOrder();
@@ -1418,6 +1444,9 @@ function clearDropIndicators() {
 function renderSettingsList() {
   const list = document.getElementById('settingsList');
   list.innerHTML = '';
+  // Сброс и повторная инициализация переменной list в closure
+  window._settingsListRef = list;
+  
   chartOrder.forEach((name) => {
     const cfg = getConfig(name);
     const hidden = hiddenParams.has(name);
@@ -1459,7 +1488,10 @@ function renderSettingsList() {
       // над самим собой — вставки нет, индикатор гасим
       if (item.dataset.name === settingsDrag.fromName) {
         clearDropIndicators();
-        settingsDrag.dropItem = null;
+        if (settingsDrag.placeholder) {
+          settingsDrag.placeholder.remove();
+          settingsDrag.placeholder = null;
+        }
         return;
       }
       // Позиция вставки: над строкой или под ней — по половине, где курсор
