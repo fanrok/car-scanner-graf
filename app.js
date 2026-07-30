@@ -864,9 +864,9 @@ function attachChartListeners(el) {
     e.dataTransfer.effectAllowed = 'move';
     // Запоминаем источник перетаскивания
     chartDragSource = box;
-    // Скрываем оригинальный элемент сразу, будет виден только drag image и placeholder
+    // Скрываем оригинальный элемент после создания drag-image
     box.classList.add('dragging');
-    box.style.visibility = 'hidden';
+    setTimeout(() => { box.style.visibility = 'hidden'; }, 0);
   });
   box.addEventListener('dragend', () => {
     box.classList.remove('dragging');
@@ -1484,7 +1484,7 @@ function renderSettingsList() {
       e.dataTransfer.setData('text/plain', name);
       e.dataTransfer.effectAllowed = 'move';
       item.classList.add('dragging');
-      item.style.visibility = 'hidden';
+      setTimeout(() => { item.style.visibility = 'hidden'; }, 0);
       settingsDrag.fromName = name;
       settingsDrag.fromIdx = chartOrder.indexOf(name);
     });
