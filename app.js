@@ -67,6 +67,7 @@ const CHART_H = 176, MAX_CHIPS = 500;
 let allData = {}, paramConfigs = {}, roleParams = {}, chartOrder = [], naturalOrder = [];
 let totalTime = 0, windowSize = 30, timePosition = 0;
 let chartEls = [], mouseX = -1, rafPending = false, dragState = null;
+let chartObserver = null;
 let dangerRetards = [], throttleFlaps = [], turboEvents = [], knockEvents = [];
 let pendingFlash = null, chartTouch = null;
 const dpr = window.devicePixelRatio || 1;
@@ -297,36 +298,48 @@ function classifyParams(rawData, rawUnits) {
   chartOrder = applySavedOrder(defaultOrder);
 }
 function parseAndDraw(text, fileName) {
-  const rawData = {}, rawUnits = {};
-  const tokens = text.replace(/^\uFEFF/, '').split(/[;\r\n]+/).map(t => t.replace(/"/g, '').trim());
+  const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  // Один проход по токенам вместо split()+map(): чистим (кавычки/пробелы,
+  // запятая->точка) только те токены, которые реально читаем, а не весь файл целиком.
+  const src = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  const tokens = src.split(/[;\r\n]+/);
+  const n = tokens.length;
+  const clean = t => (t.indexOf('"') === -1 ? t.trim() : t.replace(/"/g, '').trim());
+  const toNum = t => parseFloat(t.indexOf(',') === -1 ? t : t.replace(',', '.'));
+
+  const rawData = new Map(), rawUnits = new Map();
   let i = 0, count = 0;
-  while (i + 3 < tokens.length) {
-    const ts = parseFloat(tokens[i].replace(',', '.'));
-    const name = tokens[i + 1];
-    if (!isNaN(ts) && name) {
-      if (SKIP_PATTERNS.some(re => re.test(name))) { i += 4; continue; }
-      const val = parseFloat(tokens[i + 2].replace(',', '.'));
-      if (!isNaN(val)) {
-        if (!rawData.hasOwnProperty(name)) { rawData[name] = []; rawUnits[name] = tokens[i + 3] || ''; }
-        rawData[name].push({ x: ts, y: val });
-        count++; i += 4; continue;
-      }
-    }
-    i++;
+  while (i + 3 < n) {
+    const ts = toNum(clean(tokens[i]));
+    if (isNaN(ts)) { i++; continue; }
+    const name = clean(tokens[i + 1]);
+    if (!name) { i++; continue; }
+    if (SKIP_PATTERNS.some(re => re.test(name))) { i += 4; continue; }
+    const val = toNum(clean(tokens[i + 2]));
+    if (isNaN(val)) { i++; continue; }
+    let arr = rawData.get(name);
+    if (!arr) { arr = []; rawData.set(name, arr); rawUnits.set(name, clean(tokens[i + 3]) || ''); }
+    arr.push({ x: ts, y: val });
+    count++; i += 4;
   }
   if (!count) { document.getElementById('fileInfo').textContent = '⚠ параметры не найдены'; return; }
-  classifyParams(rawData, rawUnits);
+  classifyParams(Object.fromEntries(rawData), Object.fromEntries(rawUnits));
   let minT = Infinity, maxT = 0;
   for (const key in allData) {
-    const arr = allData[key]; arr.sort((a, b) => a.x - b.x);
-    for (let j = 0; j < arr.length; j++) { if (arr[j].x < minT) minT = arr[j].x; if (arr[j].x > maxT) maxT = arr[j].x; }
+    const arr = allData[key];
+    if (!arr.length) continue;
+    arr.sort((a, b) => a.x - b.x);
+    // Массив уже отсортирован — границы уже дают min/max, повторный проход не нужен
+    if (arr[0].x < minT) minT = arr[0].x;
+    if (arr[arr.length - 1].x > maxT) maxT = arr[arr.length - 1].x;
   }
   for (const key in allData) { const arr = allData[key]; for (let j = 0; j < arr.length; j++) arr[j].x -= minT; }
   totalTime = maxT - minT;
   wsSlider.max = Math.max(300, Math.ceil(totalTime));
   document.getElementById('empty').style.display = 'none';
   const totalParams = Object.keys(allData).filter(k => allData[k].length).length;
-  document.getElementById('fileInfo').textContent = fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек · ' + totalParams + ' параметров';
+  const parseMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0;
+  document.getElementById('fileInfo').textContent = fileName + ' · ' + formatDur(totalTime) + ' · ' + count.toLocaleString('ru-RU') + ' точек · ' + totalParams + ' параметров' + ' · ' + parseMs.toFixed(0) + 'мс';
   timePosition = 0; updateControls(); runAnalysis(); buildCharts(); renderAll();
 }
 
@@ -746,14 +759,26 @@ function jumpToEvent(ev) {
   const maxPos = Math.max(0, totalTime - windowSize);
   timePosition = Math.max(0, Math.min(maxPos, ev.x - windowSize / 3));
   pendingFlash = ev.target;
+  const target = chartEls.find(c => c.name === ev.target);
+  if (target) target.visible = true; // не ждём IntersectionObserver, пока идёт smooth-scroll к графику
   updateControls(); scheduleRender();
 }
 function getConfig(name) { return paramConfigs[name] || { name: name, shortName: name, unit: '', color: '#9AA0A6', role: 'extra' }; }
 
+function findScrollParent(el) {
+  let node = el.parentElement;
+  while (node) {
+    const cs = getComputedStyle(node);
+    if (/(auto|scroll)/.test(cs.overflowY)) return node;
+    node = node.parentElement;
+  }
+  return null; // null = viewport (обычный скролл страницы)
+}
 function buildCharts() {
   const container = document.getElementById('charts');
   container.innerHTML = '';
   chartEls = [];
+  if (chartObserver) { chartObserver.disconnect(); chartObserver = null; }
   chartOrder.forEach(name => {
     const pts = allData[name];
     if (!pts || pts.length < 2) return;
@@ -771,11 +796,29 @@ function buildCharts() {
     const el = {
       name, param, box, canvas, overlay,
       total: pts.length, fullMin: mm.min, fullMax: mm.max, wholeMax: mm.max,
-      pts: [], tStart: 0, tEnd: 0, avgInterval: 0, yMin: 0, yMax: 0, fixed: false
+      pts: [], tStart: 0, tEnd: 0, avgInterval: 0, yMin: 0, yMax: 0, fixed: false,
+      visible: true, stale: false
     };
     attachChartListeners(el);
     chartEls.push(el);
   });
+  // Графики, прокрученные за пределы экрана, не тратят время на перерисовку
+  // при каждом кадре (panning/drag/зум) — рендерятся только когда попадают
+  // в видимую область (+небольшой запас по rootMargin, чтобы не мелькали).
+  if (typeof IntersectionObserver === 'function' && chartEls.length) {
+    const root = findScrollParent(container);
+    chartObserver = new IntersectionObserver(entries => {
+      const fixed = document.getElementById('fixedScale').checked;
+      const tStart = timePosition, tEnd = timePosition + windowSize;
+      entries.forEach(entry => {
+        const el = chartEls.find(c => c.box === entry.target);
+        if (!el) return;
+        el.visible = entry.isIntersecting;
+        if (el.visible && el.stale) { renderChart(el, tStart, tEnd, fixed); el.stale = false; }
+      });
+    }, { root, rootMargin: '200px 0px', threshold: 0 });
+    chartEls.forEach(el => chartObserver.observe(el.box));
+  }
   renderAll();
 }
 function attachChartListeners(el) {
@@ -843,7 +886,11 @@ window.addEventListener('blur', () => endPointerDrag(null));
 function renderAll() {
   const tStart = timePosition, tEnd = timePosition + windowSize;
   const fixed = document.getElementById('fixedScale').checked;
-  for (let i = 0; i < chartEls.length; i++) renderChart(chartEls[i], tStart, tEnd, fixed);
+  for (let i = 0; i < chartEls.length; i++) {
+    const el = chartEls[i];
+    if (el.visible === false) { el.stale = true; continue; }
+    renderChart(el, tStart, tEnd, fixed);
+  }
 }
 function renderChart(el, tStart, tEnd, fixed) {
   const all = allData[el.name];
@@ -942,10 +989,18 @@ function drawChart(el) {
 
   const danger = getDangerForChart(param, tStart, tEnd);
   const realPts = pts.filter(p => !p.isBoundary);
+  // Бюджет точек-маркеров привязан к ширине графика в пикселях, а не к
+  // сырому количеству точек в окне — на плотных логах (5000+ точек) это
+  // не даёт отрисовке тратить время на тысячи налегающих друг на друга
+  // кружков. decimateForDraw через min/max-бакеты гарантированно сохраняет
+  // истинные глобальные min/max, поэтому его же можно использовать и для
+  // текста статистики (мин…макс) без отдельного полного прохода по realPts.
+  const DOT_BUDGET = Math.max(120, Math.floor(pw / 3));
+  const dotPts = realPts.length > DOT_BUDGET ? decimateForDraw(realPts, DOT_BUDGET) : realPts;
   const fullCoverage = realPts.length === total && total > 0;
   let stats = realPts.length + '/' + total + ' ' + plural(realPts.length);
   if (avgInterval > 0) stats += ' · Δt ' + avgInterval.toFixed(2) + 's';
-  if (realPts.length) { const mm = minMax(realPts); stats += ' · ' + formatValue(mm.min) + '…' + formatValue(mm.max); }
+  if (dotPts.length) { const mm = minMax(dotPts); stats += ' · ' + formatValue(mm.min) + '…' + formatValue(mm.max); }
   let nAnom = 0;
   if (param.anomaly && realPts.length) { const [lo, hi] = param.anomaly; nAnom = realPts.reduce((n, p) => n + ((p.y < lo || p.y > hi) ? 1 : 0), 0); }
 
@@ -1034,9 +1089,9 @@ function drawChart(el) {
   ctx.lineTo(lastX, pad.t + ph); ctx.lineTo(firstX, pad.t + ph); ctx.closePath();
   ctx.fillStyle = param.color + '1f'; ctx.fill();
 
-  if (realPts.length && realPts.length <= 1500) {
-    const baseR = realPts.length > 500 ? 2.3 : 3;
-    realPts.forEach(p => {
+  if (dotPts.length) {
+    const baseR = dotPts.length > 500 ? 2.3 : 3;
+    dotPts.forEach(p => {
       const x = pad.l + pw * (p.x - tStart) / (tEnd - tStart);
       const y = pad.t + ph * (1 - (p.y - dYMin) / dYRange);
       let fill = param.color, stroke = '#0e1116', r = baseR;
