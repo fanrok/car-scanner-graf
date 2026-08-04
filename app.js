@@ -144,8 +144,22 @@ window.addEventListener('wheel', e => {
   timePosition = Math.max(0, Math.min(maxPos, timePosition + norm * windowSize / 600));
   updateControls(); scheduleRender();
 }, { passive: false });
+let lastLayoutWidth = document.documentElement.clientWidth;
 let resizeTimer;
-window.addEventListener('resize', () => { if (!totalTime) return; clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { buildCharts(); renderAll(); updateTimeline(); }, 120); });
+window.addEventListener('resize', () => {
+    if (!totalTime) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        const w = document.documentElement.clientWidth;
+        if (w !== lastLayoutWidth) {          
+            lastLayoutWidth = w;
+            buildCharts();
+            renderAll();
+            applyVisibility();               
+        }
+        updateTimeline();                     
+    }, 120);
+});
 
 function scheduleRender() {
   if (rafPending) return;
@@ -842,6 +856,7 @@ function buildCharts() {
     chartEls.forEach(el => chartObserver.observe(el.box));
   }
   renderAll();
+  applyVisibility();
 }
 function attachChartListeners(el) {
   const canvas = el.canvas, box = el.box;
@@ -1327,6 +1342,7 @@ function toggleSettings(force) {
 
 // ===== Состояние переноса в панели настроек =====
 let settingsDrag = { fromName: null, fromIdx: -1, dropItem: null, dropBefore: false };
+let settingsPtrDrag = null;   // ← НОВОЕ: { item, startY, dragging, id }
 function resetSettingsDrag() {
   settingsDrag = { fromName: null, fromIdx: -1, dropItem: null, dropBefore: false };
 }
@@ -1354,6 +1370,13 @@ function renderSettingsList() {
       '<input type="checkbox"' + (hidden ? '' : ' checked') + '>' +
       '<span class="color-dot" style="background:' + cfg.color + '"></span>' +
       '<span class="item-name">' + (cfg.shortName || name) + '</span>';
+	  
+    const handle = item.querySelector('.drag-handle');
+	handle.addEventListener('pointerdown', e => {
+		if (e.pointerType === 'mouse' && e.button !== 0) return;
+		settingsPtrDrag = { item, startY: e.clientY, dragging: false, id: e.pointerId };
+		e.preventDefault(); // запрещаем выделение текста и нативный drag
+	});
 
     // чекбокс — видимость
     item.querySelector('input').addEventListener('change', (e) => {
@@ -1425,53 +1448,55 @@ function attachSettingsItemDrag(item) {
 }*/
 
 window.addEventListener('pointermove', e => {
-  if (!settingsDrag || e.pointerId !== settingsDrag.id) return;
-  const item = settingsDrag.item;
-  const list = document.getElementById('settingsList');
-  if (!list) { settingsDrag = null; return; }
+    if (!settingsPtrDrag || e.pointerId !== settingsPtrDrag.id) return;
+    const item = settingsPtrDrag.item;
+    const list = document.getElementById('settingsList');
+    if (!list) { settingsPtrDrag = null; return; }
 
-  if (!settingsDrag.dragging) {
-    if (Math.abs(e.clientY - settingsDrag.startY) > 5) {
-      settingsDrag.dragging = true;
-      try { item.setPointerCapture(settingsDrag.id); } catch(_){}
-      item.classList.add('dragging');
-    } else return;
-  }
-  e.preventDefault();
+    if (!settingsPtrDrag.dragging) {
+        if (Math.abs(e.clientY - settingsPtrDrag.startY) > 6) {
+            settingsPtrDrag.dragging = true;
+            try { item.setPointerCapture(settingsPtrDrag.id); } catch(_){}
+            item.classList.add('dragging');
+            document.body.classList.add('is-dragging');
+        } else return;
+    }
+    e.preventDefault();
 
-  // авто-скролл списка у краёв
-  const listRect = list.getBoundingClientRect();
-  if (e.clientY < listRect.top + 28) list.scrollTop -= 8;
-  else if (e.clientY > listRect.bottom - 28) list.scrollTop += 8;
+    // Автоскролл списка у краёв
+    const listRect = list.getBoundingClientRect();
+    if (e.clientY < listRect.top + 32) list.scrollTop -= 10;
+    else if (e.clientY > listRect.bottom - 32) list.scrollTop += 10;
 
-  // вставка перед первой строкой, чей центр ниже указателя (как у графиков)
-  const items = Array.from(list.querySelectorAll('.settings-item'));
-  let target = null;
-  for (let i = 0; i < items.length; i++) {
-    if (items[i] === item) continue;
-    const r = items[i].getBoundingClientRect();
-    if (e.clientY < r.top + r.height / 2) { target = items[i]; break; }
-  }
-  if (target) list.insertBefore(item, target);
-  else list.appendChild(item);
-});
+    // Вставка перед первой строкой, чей центр ниже указателя
+    const items = Array.from(list.querySelectorAll('.settings-item'));
+    let target = null;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i] === item) continue;
+        const r = items[i].getBoundingClientRect();
+        if (e.clientY < r.top + r.height / 2) { target = items[i]; break; }
+    }
+    if (target) list.insertBefore(item, target);
+    else list.appendChild(item);
+}, { passive: false });
 
 function endSettingsDrag(e) {
-  if (!settingsDrag) return;
-  if (e && e.pointerId !== undefined && e.pointerId !== settingsDrag.id) return;
-  const item = settingsDrag.item;
-  if (settingsDrag.dragging) {
-    item.classList.remove('dragging');
-    // порядок берём прямо из DOM
-    const list = document.getElementById('settingsList');
-    const newOrder = Array.from(list.querySelectorAll('.settings-item')).map(el => el.dataset.name);
-    chartOrder.forEach(n => { if (newOrder.indexOf(n) === -1) newOrder.push(n); });
-    chartOrder = newOrder;
-    saveOrder();
-    rebuildChartsFromOrder();
-  }
-  try { item.releasePointerCapture(settingsDrag.id); } catch(_){}
-  settingsDrag = null;
+    if (!settingsPtrDrag) return;
+    if (e && e.pointerId !== undefined && e.pointerId !== settingsPtrDrag.id) return;
+    const item = settingsPtrDrag.item;
+    if (settingsPtrDrag.dragging) {
+        item.classList.remove('dragging');
+        document.body.classList.remove('is-dragging');
+        // Порядок берём из DOM
+        const list = document.getElementById('settingsList');
+        const newOrder = Array.from(list.querySelectorAll('.settings-item')).map(el => el.dataset.name);
+        chartOrder.forEach(n => { if (newOrder.indexOf(n) === -1) newOrder.push(n); });
+        chartOrder = newOrder;
+        saveSetting(ORDER_KEY, JSON.stringify(chartOrder)); // сохраняем напрямую
+        rebuildChartsFromOrder();
+    }
+    try { item.releasePointerCapture(settingsPtrDrag.id); } catch(_){}
+    settingsPtrDrag = null;
 }
 window.addEventListener('pointerup', endSettingsDrag);
 window.addEventListener('pointercancel', endSettingsDrag);
