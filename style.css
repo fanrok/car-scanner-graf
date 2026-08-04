@@ -359,3 +359,17 @@ canvas { display: block; width: 100%; }
 }
 .settings-footer button:hover { border-color: #4a90d9; color: #e2e8f0; }
 .settings-footer .count { font-size: 10.5px; color: #6b7685; }
+/* В style.css */
+.settings-list {
+    overflow-y: auto;
+    padding: 6px 8px;
+    flex: 1;
+    touch-action: pan-y;         /* разрешаем вертикальный скролл пальцем */
+    -webkit-overflow-scrolling: touch;
+}
+.settings-item {
+    touch-action: pan-y;         /* draggable не должен блокировать скролл */
+}
+.settings-item .drag-handle {
+    touch-action: none;          /* ручка — только для перетаскивания */
+}
